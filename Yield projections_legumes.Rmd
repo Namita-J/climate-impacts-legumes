@@ -13,7 +13,7 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
 comments:
   utterances:
-    repo: your_github_username/climate-impacts-legumes
+    repo: Namita-J/climate-impacts-legumes
 ---
 
 ```{r}
