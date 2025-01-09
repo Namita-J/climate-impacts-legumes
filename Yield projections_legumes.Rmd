@@ -7,6 +7,8 @@ output:
     toc: true                # Enables the table of contents
     toc_float: true          # Makes the TOC a floating sidebar
     code_folding: hide       # Hides code by default
+    includes:
+      after_body: hypothes.html  # This points to the custom HTML file
 vignette: >
   %\VignetteIndexEntry{Legume yield projections}
   %\VignetteEncoding{UTF-8}
