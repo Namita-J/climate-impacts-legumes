@@ -1,0 +1,46 @@
+---
+title: "Climate Change Impacts on Legumes"
+author: "Namita Joshi"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_document:
+    toc: true                # Enables the table of contents
+    toc_float: true          # Makes the TOC a floating sidebar
+    code_folding: hide       # Hides code by default
+vignette: >
+  %\VignetteIndexEntry{Legume yield projections}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+comments:
+  utterances:
+    repo: your_github_username/climate-impacts-legumes
+---
+
+```{r}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+This vignette aims to explore the data on the projected impacts of climate change on legume crops in Africa. It will explore the following: 
+
+
+***Methodology:***
+
+*1. Search Terms Used*
+
+*2. Screening Criteria Applied*
+
+*3. Data Extraction Process*
+
+## Introduction
+sfasfawfawf
+
+<!-- Comments for Yield Projections -->
+
+## Methods
+
