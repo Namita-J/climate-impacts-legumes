@@ -27,7 +27,7 @@ knitr::opts_chunk$set(
 ```
 
 This vignette aims to explore the data on the projected impacts of climate change on legume crops in Africa. It will explore the following: 
-
+sdgsdfgsgf
 
 ***Methodology:***
 
