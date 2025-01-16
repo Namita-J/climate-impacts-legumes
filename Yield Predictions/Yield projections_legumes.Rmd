@@ -16,6 +16,7 @@ vignette: >
 comments:
   utterances:
     repo: Namita-J/climate-impacts-legumes
+runtime: shiny
 ---
 
 ```{r}
@@ -31,7 +32,7 @@ knitr::opts_chunk$set(
 ```{r packages,include=F,eval=T,echo=F}
 
 pacman::p_load(
-   knitr, readxl, httr
+   knitr, readxl, httr, leaflet, dplyr, shiny, ggplot2
 )
 ```
 
@@ -185,5 +186,131 @@ kable(search_terms, caption = "Search Terms for Projected of Climate Impacts on 
 ```
 
 ```{r distribution of papers in Africa, echo=FALSE, message=FALSE}
+
+# Define specific crops for filtering
+selected_crops <- c("Common bean", "Groundnut", "Cowpea", "Soybean", "Common Bean", 
+                    "Bush Bean", "Climbing Bean", "Faba Bean", "Green grams")
+
+# Subset the dataset (Replace 'dataset' with your actual dataset variable)
+filtered_data <- dataset %>%
+  filter(Crop %in% selected_crops) %>%
+  mutate(
+    longitude = as.numeric(longitude),
+    latitude = as.numeric(latitude)
+  ) %>%
+  filter(!is.na(longitude) & !is.na(latitude))  # Ensure valid coordinates
+
+# UI
+ui <- fluidPage(
+  titlePanel("Interactive Map of Studies by Crop in Africa"),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput(
+        inputId = "selected_crop",
+        label = "Select a Crop:",
+        choices = c("All", unique(filtered_data$Crop)),  # Add "All" as an option
+        selected = "All"  # Default to "All"
+      )
+    ),
+    mainPanel(
+      leafletOutput("map", height = "300px")  # Output for the map
+    )
+  )
+)
+
+# Server
+server <- function(input, output, session) {
+  output$map <- renderLeaflet({
+    # Filter data based on selected crop
+    crop_data <- if (input$selected_crop == "All") {
+      filtered_data
+    } else {
+      filtered_data %>% filter(Crop == input$selected_crop)
+    }
+    
+    # Create the leaflet map
+    leaflet(data = crop_data) %>%
+      addProviderTiles(providers$CartoDB.Positron) %>%
+      addCircles(
+        lng = ~longitude,
+        lat = ~latitude,
+        popup = ~paste0(
+          "Crop: ", Crop, "<br>"
+        ),
+        color = "#1f78b4",
+        radius = 50000,
+        opacity = 0.8,
+        fillOpacity = 0.5
+      ) %>%
+      addLegend(
+        position = "bottomleft",
+        colors = "#1f78b4",
+        labels = "Study Locations",
+        title = "Legend"
+      )
+  })
+}
+# Run the Shiny App
+shinyApp(ui = ui, server = server)
+
+```
+
+```{r box plots of different legumes, echo=FALSE, message=FALSE}
+# Filter data for specific crops
+filtered_data <- dataset %>%
+  filter(Crop %in% selected_crops) %>%
+  filter(!is.na(`Climate impacts (%)`))  # Ensure 'Climate impacts (%)' is not NA
+
+# Count observations for each crop
+filtered_data <- filtered_data %>%
+  group_by(Crop) %>%
+  mutate(Count = n()) %>%
+  ungroup()
+
+# Create the boxplot
+ggplot(filtered_data, aes(x = `Climate impacts (%)`, y = reorder(Crop, Count, .desc = TRUE))) +
+  geom_boxplot(outlier.size = 1, outlier.color = "red") +
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed") +
+  labs(
+    x = "Climate Impact (%)",
+    y = "Crop (n)",
+    title = "Climate Impact (%) on Selected Crops"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.title.y = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    axis.text.y = element_text(size = 10)
+  )
+```
+
+
+```{r box plots of different climate scenarios, echo=FALSE, message=FALSE}
+# Filter data for specific crops
+filtered_data <- dataset %>%
+  filter(Crop %in% selected_crops) %>%
+  filter(!is.na(`Climate impacts (%)`))  # Ensure 'Climate impacts (%)' is not NA
+
+# Count observations for each crop
+filtered_data <- filtered_data %>%
+  group_by(`Climate scenario`) %>%
+  mutate(Count = n()) %>%
+  ungroup()
+
+# Create the boxplot
+ggplot(filtered_data, aes(x = `Climate impacts (%)`, y = reorder(`Climate scenario`, Count, .desc = TRUE))) +
+  geom_boxplot(outlier.size = 1, outlier.color = "red") +
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed") +
+  labs(
+    x = "Climate Impact (%)",
+    y = "Crop (n)",
+    title = "Climate Impact (%) for different scenarios"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.title.y = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    axis.text.y = element_text(size = 10)
+  )
 
 ```
