@@ -28,9 +28,18 @@ knitr::opts_chunk$set(
 )
 ```
 
-This vignette aims to explore the data on the projected impacts of climate change on legume crops in Africa. It will explore the following: 
+```{r r packages,include=F,eval=T,echo=F}
 
-testing
+pacman::p_load(
+   knitr, readxl
+)
+```
+
+# Introduction
+
+This vignette aims to explore the data on the projected impacts of climate change on legume crops in Africa. It will explore the following:
+
+***Literature Review***
 
 ***Methodology:***
 
@@ -38,10 +47,119 @@ testing
 
 *2. Screening Criteria Applied*
 
-*3. Data Extraction Process*
+*3. Screening outcomes*
 
-## Introduction
+*4. Data Extraction Process*
+
+***Data exploration:***
+
+*1. Distribution of papers in Africa*
+
+*2. Understanding how different practices reduce the impacts of climate change*
+
+*3. Treatment vs Control*
+
+*4. Comparisons between legumes*
+
+***Next steps:***
+
+*1. OpenAlex results*
+
+*2. Introducing other variables*
+
+# Literature Review
+
+# Methodology:
+
+## Search Terms Used
+
+To conduct a comprehensive meta-analysis on the climate impacts on legumes in Africa, a systematic literature search was performed using the Web of Science (WoS) database. The search terms were designed to capture studies that explore climate change, its various drivers, and impacts on agricultural productivity, particularly focusing on legumes, within the African context. The search strategy incorporated Boolean operators, proximity operators, and specific geographical filters to ensure relevance and precision. Below are the details of the search terms used:
+
+### Climate Change-Related Terms
+
+The following terms were used to capture studies focused on climate change, its drivers, and related phenomena:
+
+**Climate-related terms**:
+
+-   `(climat* NEAR/2 (change* OR warming OR impact* OR variability* OR disruption OR risk* OR shock*))`
+
+-   "global warming"
+
+-   "drought"
+
+-   `(rainfall NEAR/2 (change* OR variability* OR pattern*))`
+
+-   `(heat NEAR/2 (stress OR wave*))`
+
+-   `((CO2 OR carbondioxide OR carbon-dioxide OR "carbon dioxide" OR "greenhouse gas*") NEAR/2 (emission* OR fertilisation* OR fertilization* OR increase* OR elevat* OR effect*))`
+
+-   `(temperature* NEAR/2 (increase* OR change* OR variabilite* OR global OR trend OR extreme))`
+
+-   `(precipitation* NEAR/2 (change* OR pattern* OR increase* OR trend))`
+
+-   "extreme event\*"
+
+**Agriculture and Food Productivity Terms**
+
+To ensure relevance to agricultural productivity and legumes, the following terms were included:
+
+-   `(((agriculture* OR crop* OR food*) NEAR/2 product*)`
+
+-   "food secure\*"
+
+-   "yield\*"
+
+-   `(crop* NEAR/2 (performance* OR output* OR biomass*))`
+
+-   `(plant* NEAR/2 biomass*)`
+
+-   "harvest\*"
+
+**Geographical Filters**
+
+The search was further refined to include studies conducted in Africa, using the following geographical filters:
+
+-   `CU=( Angola OR Benin OR Botswana OR Burkina Faso OR Burundi OR Cameroon OR Cape Verde OR Central African Republic OR Chad OR Comoros OR Congo (Democratic Republic) OR “Côte d'Ivoire” OR Djibouti OR “Equatorial Guinea” OR Eritrea OR Ethiopia OR Gabon OR “The Gambia” OR Ghana OR Guinea OR “Guinea-Bissau” OR Kenya OR Lesotho OR Liberia OR Madagascar OR Malawi OR Mali OR Mauritania OR Mauritius OR Mozambique OR Namibia OR Niger OR Nigeria OR Réunion OR Rwanda OR “Sao Tome and Principe” OR Senegal OR Seychelles OR “Sierra Leone” OR Somalia OR “South Africa” OR Sudan OR Swaziland OR Tanzania OR Togo OR Uganda OR “Western Sahara” OR Zambia OR Zimbabwe)`
+
+**Logical Combination**
+
+The final search string combined all the above elements using the Boolean operator `AND`:
+
+-   Climate-related terms AND Agriculture and food productivity terms AND Geographical filters.
+
+This comprehensive search strategy was implemented to identify all relevant studies addressing climate change impacts on agricultural productivity, particularly legumes, in Africa.
+
+```{r search-terms, echo=FALSE, message=FALSE}
+# Create a data frame to hold search terms
+
+search_terms <- data.frame(
+  Source = c("WoS"),
+  Subject = c("Livestock"),
+  Query = paste(
+    "(climat* near/2 (change* OR warming OR impact* OR variability* OR disruption OR risk* OR shock*)) OR",
+    "\"global warming\" OR drought OR (rainfall near/2 (change* OR variability* OR pattern*)) OR",
+    "(heat near/2 (stress OR wave*)) OR ((CO2 OR carbondioxide OR carbon-dioxide OR \"carbon dioxide\"",
+    "OR \"greenhouse gas*\") near/2 (emission* OR fertilisation* OR fertilization* OR increase* OR elevat*",
+    "OR effect*)) OR (temperature* near/2 (increase* OR change* OR variabilite* OR global OR trend OR extreme)) OR",
+    "(precipitation* near/2 (change* OR pattern* OR increase* OR trend) OR \"extreme event*\") AND",
+    "(((agriculture* OR crop* OR food*) near/2 product*) OR \"food secure*\" OR yield* OR",
+    "(crop* near/2 (performance* OR output* OR biomass*)) OR (plant* near/2 biomass*) OR harvest*) AND",
+    "CU=( Angola OR Benin OR Botswana OR Burkina Faso OR Burundi OR Cameroon OR Cape Verde OR",
+    "Central African Republic OR Chad OR Comoros OR Congo (Democratic Republic) OR \"Côte d'Ivoire\" OR Djibouti",
+    "OR \"Equatorial Guinea\" OR Eritrea OR Ethiopia OR Gabon OR \"The Gambia\" OR Ghana OR Guinea OR \"Guinea-Bissau\"",
+    "OR Kenya OR Lesotho OR Liberia OR Madagascar OR Malawi OR Mali OR Mauritania OR Mauritius OR Mozambique OR Namibia",
+    "OR Niger OR Nigeria OR Réunion OR Rwanda OR \"Sao Tome and Principe\" OR Senegal OR Seychelles OR \"Sierra Leone\"",
+    "OR Somalia OR \"South Africa\" OR Sudan OR Swaziland OR Tanzania OR Togo OR Uganda OR \"Western Sahara\" OR Zambia",
+    "OR Zimbabwe)"
+  )
+)
 
 
-## Methods
+# Display the table using knitr::kable
+kable(search_terms, caption = "Search Terms for Projected of Climate Impacts on Legumes in Africa")
+  
+```
 
+```{r distribution of papers in Africa, echo=FALSE, message=FALSE}
+#readxl
+```
