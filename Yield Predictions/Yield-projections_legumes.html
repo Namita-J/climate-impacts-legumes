@@ -11,7 +11,7 @@
 
 <meta name="author" content="Namita Joshi" />
 
-<meta name="date" content="2025-01-10" />
+<meta name="date" content="2025-01-16" />
 
 <title>Climate Change Impacts on Legumes</title>
 
@@ -1569,7 +1569,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">Climate Change Impacts on Legumes</h1>
 <h4 class="author">Namita Joshi</h4>
-<h4 class="date">2025-01-10</h4>
+<h4 class="date">2025-01-16</h4>
 
 </div>
 
@@ -1581,22 +1581,143 @@ border-radius: 0px;
   message = FALSE,
   warning = FALSE
 )</code></pre>
+<div id="introduction" class="section level1">
+<h1>Introduction</h1>
 <p>This vignette aims to explore the data on the projected impacts of
 climate change on legume crops in Africa. It will explore the
 following:</p>
-<p>testing</p>
+<p><strong><em>Literature Review</em></strong></p>
 <p><strong><em>Methodology:</em></strong></p>
 <p><em>1. Search Terms Used</em></p>
 <p><em>2. Screening Criteria Applied</em></p>
-<p><em>3. Data Extraction Process</em></p>
-<div id="introduction" class="section level2">
-<h2>Introduction</h2>
+<p><em>3. Screening outcomes</em></p>
+<p><em>4. Data Extraction Process</em></p>
+<p><strong><em>Data exploration:</em></strong></p>
+<p><em>1. Distribution of papers in Africa</em></p>
+<p><em>2. Understanding how different practices reduce the impacts of
+climate change</em></p>
+<p><em>3. Treatment vs Control</em></p>
+<p><em>4. Comparisons between legumes</em></p>
+<p><strong><em>Next steps:</em></strong></p>
+<p><em>1. OpenAlex results</em></p>
+<p><em>2. Introducing other variables</em></p>
 </div>
-<div id="methods" class="section level2">
-<h2>Methods</h2>
+<div id="literature-review" class="section level1">
+<h1>Literature Review</h1>
+</div>
+<div id="methodology" class="section level1">
+<h1>Methodology:</h1>
+<div id="search-terms-used" class="section level2">
+<h2>Search Terms Used</h2>
+<p>To conduct a comprehensive meta-analysis on the climate impacts on
+legumes in Africa, a systematic literature search was performed using
+the Web of Science (WoS) database. The search terms were designed to
+capture studies that explore climate change, its various drivers, and
+impacts on agricultural productivity, particularly focusing on legumes,
+within the African context. The search strategy incorporated Boolean
+operators, proximity operators, and specific geographical filters to
+ensure relevance and precision. Below are the details of the search
+terms used:</p>
+<div id="climate-change-related-terms" class="section level3">
+<h3>Climate Change-Related Terms</h3>
+<p>The following terms were used to capture studies focused on climate
+change, its drivers, and related phenomena:</p>
+<ul>
+<li><strong>Climate-related terms</strong>:
+<ul>
+<li><code>(climat* NEAR/2 (change* OR warming OR impact* OR variability* OR disruption OR risk* OR shock*))</code></li>
+<li>“global warming”</li>
+<li>“drought”</li>
+<li><code>(rainfall NEAR/2 (change* OR variability* OR pattern*))</code></li>
+<li><code>(heat NEAR/2 (stress OR wave*))</code></li>
+<li><code>((CO2 OR carbondioxide OR carbon-dioxide OR &quot;carbon dioxide&quot; OR &quot;greenhouse gas*&quot;) NEAR/2 (emission* OR fertilisation* OR fertilization* OR increase* OR elevat* OR effect*))</code></li>
+<li><code>(temperature* NEAR/2 (increase* OR change* OR variabilite* OR global OR trend OR extreme))</code></li>
+<li><code>(precipitation* NEAR/2 (change* OR pattern* OR increase* OR trend))</code></li>
+<li>“extreme event*”</li>
+</ul></li>
+</ul>
+</div>
+<div id="agriculture-and-food-productivity-terms" class="section level3">
+<h3>Agriculture and Food Productivity Terms</h3>
+<p>To ensure relevance to agricultural productivity and legumes, the
+following terms were included:</p>
+<ul>
+<li><code>(((agriculture* OR crop* OR food*) NEAR/2 product*)</code></li>
+<li>“food secure*”</li>
+<li>“yield*”</li>
+<li><code>(crop* NEAR/2 (performance* OR output* OR biomass*))</code></li>
+<li><code>(plant* NEAR/2 biomass*)</code></li>
+<li>“harvest*”</li>
+</ul>
+</div>
+<div id="geographical-filters" class="section level3">
+<h3>Geographical Filters</h3>
+<p>The search was further refined to include studies conducted in
+Africa, using the following geographical filters:</p>
+<ul>
+<li><code>CU=( Angola OR Benin OR Botswana OR Burkina Faso OR Burundi OR Cameroon OR Cape Verde OR Central African Republic OR Chad OR Comoros OR Congo (Democratic Republic) OR “Côte d&#39;Ivoire” OR Djibouti OR “Equatorial Guinea” OR Eritrea OR Ethiopia OR Gabon OR “The Gambia” OR Ghana OR Guinea OR “Guinea-Bissau” OR Kenya OR Lesotho OR Liberia OR Madagascar OR Malawi OR Mali OR Mauritania OR Mauritius OR Mozambique OR Namibia OR Niger OR Nigeria OR Réunion OR Rwanda OR “Sao Tome and Principe” OR Senegal OR Seychelles OR “Sierra Leone” OR Somalia OR “South Africa” OR Sudan OR Swaziland OR Tanzania OR Togo OR Uganda OR “Western Sahara” OR Zambia OR Zimbabwe)</code></li>
+</ul>
+</div>
+<div id="logical-combination" class="section level3">
+<h3>Logical Combination</h3>
+<p>The final search string combined all the above elements using the
+Boolean operator <code>AND</code>:</p>
+<ul>
+<li>Climate-related terms AND Agriculture and food productivity terms
+AND Geographical filters.</li>
+</ul>
+<p>This comprehensive search strategy was implemented to identify all
+relevant studies addressing climate change impacts on agricultural
+productivity, particularly legumes, in Africa.</p>
+<table>
+<caption>Search Terms for Projected of Climate Impacts on Legumes in
+Africa</caption>
+<colgroup>
+<col width="0%" />
+<col width="0%" />
+<col width="98%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Source</th>
+<th align="left">Subject</th>
+<th align="left">Query</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">WoS</td>
+<td align="left">Livestock</td>
+<td align="left">(climat* near/2 (change* OR warming OR impact* OR
+variability* OR disruption OR risk* OR shock<em>)) OR “global warming”
+OR drought OR (rainfall near/2 (change</em> OR variability* OR
+pattern<em>)) OR (heat near/2 (stress OR wave</em>)) OR ((CO2 OR
+carbondioxide OR carbon-dioxide OR “carbon dioxide” OR “greenhouse
+gas<em>”) near/2 (emission</em> OR fertilisation* OR fertilization* OR
+increase* OR elevat* OR effect<em>)) OR (temperature</em> near/2
+(increase* OR change* OR variabilite* OR global OR trend OR extreme)) OR
+(precipitation* near/2 (change* OR pattern* OR increase* OR trend)
+OR”extreme event<em>“) AND (((agriculture* OR crop* OR food<em>) near/2
+product</em>) OR”food secure</em>” OR yield* OR (crop* near/2
+(performance* OR output* OR biomass<em>)) OR (plant</em> near/2
+biomass<em>) OR harvest</em>) AND CU=( Angola OR Benin OR Botswana OR
+Burkina Faso OR Burundi OR Cameroon OR Cape Verde OR Central African
+Republic OR Chad OR Comoros OR Congo (Democratic Republic) OR “Côte
+d’Ivoire” OR Djibouti OR “Equatorial Guinea” OR Eritrea OR Ethiopia OR
+Gabon OR “The Gambia” OR Ghana OR Guinea OR “Guinea-Bissau” OR Kenya OR
+Lesotho OR Liberia OR Madagascar OR Malawi OR Mali OR Mauritania OR
+Mauritius OR Mozambique OR Namibia OR Niger OR Nigeria OR Réunion OR
+Rwanda OR “Sao Tome and Principe” OR Senegal OR Seychelles OR “Sierra
+Leone” OR Somalia OR “South Africa” OR Sudan OR Swaziland OR Tanzania OR
+Togo OR Uganda OR “Western Sahara” OR Zambia OR Zimbabwe)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 
-<script>!function(){"use strict";var s={"scripts/annotator.bundle.js":"scripts/annotator.bundle.js?d730ec","styles/annotator.css":"styles/annotator.css?4a2cb6","styles/annotator.css.map":"styles/annotator.css.map?969663","styles/highlights.css":"styles/highlights.css?6b4ebd","styles/highlights.css.map":"styles/highlights.css.map?241350","styles/katex.min.css":"styles/katex.min.css?94f096","styles/katex.min.css.map":"styles/katex.min.css.map?e7e03f","styles/pdfjs-overrides.css":"styles/pdfjs-overrides.css?c95edf","styles/pdfjs-overrides.css.map":"styles/pdfjs-overrides.css.map?1d8ac6","styles/sidebar.css":"styles/sidebar.css?3278f7","styles/sidebar.css.map":"styles/sidebar.css.map?6c7cc4","styles/ui-playground.css":"styles/ui-playground.css?fabf66","styles/ui-playground.css.map":"styles/ui-playground.css.map?057ae3","scripts/annotator.bundle.js.map":"scripts/annotator.bundle.js.map?b7dc0f","scripts/sidebar.bundle.js":"scripts/sidebar.bundle.js?4c623e","scripts/ui-playground.bundle.js":"scripts/ui-playground.bundle.js?e9e4b6","scripts/sidebar.bundle.js.map":"scripts/sidebar.bundle.js.map?a4f9be","scripts/ui-playground.bundle.js.map":"scripts/ui-playground.bundle.js.map?e91bdd"};function e(s){s.setAttribute("data-hypothesis-asset","")}function t(s,t){var o=s.createElement("link");o.rel="stylesheet",o.type="text/css",o.href=t,e(o),s.head.appendChild(o)}function o(s,t){var o=arguments.length>2&&void 0!==arguments[2]?arguments[2]:{},r=o.esModule,n=void 0===r||r,i=o.forceReload,a=void 0!==i&&i,l=s.createElement("script");n&&(l.type="module"),a&&(t+="#ts=".concat(Date.now())),l.src=t,l.async=!1,e(l),s.head.appendChild(l)}function r(s,t,o,r){var n=s.createElement("link");n.rel=t,n.href=r,n.type="application/annotator+".concat(o),e(n),s.head.appendChild(n)}function n(s,t,o){var r=s.createElement("link");r.rel="preload",r.as=t,r.href=o,"fetch"===t&&(r.crossOrigin="anonymous"),e(r),s.head.appendChild(r)}function i(s,e){return s.assetRoot+"build/"+s.manifest[e]}function a(s){var e=arguments.length>1&&void 0!==arguments[1]?arguments[1]:document;if(-1===s.indexOf("{"))return s;var t=function(){var s,e,t=(arguments.length>0&&void 0!==arguments[0]?arguments[0]:document).currentScript;return t?(s=t.src,(e=s.match(/(https?):\/\/([^:/]+)/))?{protocol:e[1],hostname:e[2]}:null):null}(e);if(!t)throw new Error("Could not process URL template because script origin is unknown");return s=(s=s.replace("{current_host}",t.hostname)).replace("{current_scheme}",t.protocol)}if(function(){var s=[()=>Object.fromEntries([]),()=>new URL(document.location.href),()=>new Request("https://hypothes.is"),()=>Element.prototype.attachShadow,()=>CSS.supports("display: grid"),()=>(document.evaluate("/html/body",document,null,XPathResult.ANY_TYPE,null),!0)];try{return s.every((s=>s()))}catch(s){return!1}}()){var l=function(s){for(var e={},t=s.querySelectorAll("script.js-hypothesis-config"),o=0;o<t.length;o++){var r=void 0;try{r=JSON.parse(t[o].textContent||"")}catch(s){console.warn("Could not parse settings from js-hypothesis-config tags",s),r={}}Object.assign(e,r)}return e}(document),p=a(l.assetRoot||"https://cdn.hypothes.is/hypothesis/1.1550.0/");if(document.querySelector("hypothesis-app")){!function(s,e){n(s,"fetch",e.apiUrl),n(s,"fetch",e.apiUrl+"links");for(var r=0,a=["scripts/sidebar.bundle.js"];r<a.length;r++)o(s,i(e,a[r]),{esModule:!0});for(var l=0,p=["styles/katex.min.css","styles/sidebar.css"];l<p.length;l++)t(s,i(e,p[l]))}(document,{assetRoot:p,manifest:s,apiUrl:l.apiUrl})}else{var c=function(){var s;return null===(s=(arguments.length>0&&void 0!==arguments[0]?arguments[0]:window).chrome)||void 0===s||null===(s=s.runtime)||void 0===s?void 0:s.id}();if(c&&!function(s){return!!(arguments.length>1&&void 0!==arguments[1]?arguments[1]:document).querySelector("script.js-hypothesis-config[data-extension-id=".concat(s,"]"))}(c))throw new Error("Could not start Hypothesis extension as configuration is missing");var d=l,h=a(d.notebookAppUrl||"https://hypothes.is/notebook"),u=a(d.profileAppUrl||"https://hypothes.is/user-profile"),y=a(d.sidebarAppUrl||"https://hypothes.is/app.html");!function(s,e){if(!s.querySelector('link[type="application/annotator+html"]')){r(s,"sidebar","html",e.sidebarAppUrl),r(s,"notebook","html",e.notebookAppUrl),r(s,"profile","html",e.profileAppUrl),n(s,"style",i(e,"styles/annotator.css")),r(s,"hypothesis-client","javascript",e.assetRoot+"build/boot.js");for(var a=0,l=["scripts/annotator.bundle.js"];a<l.length;a++)o(s,i(e,l[a]),{esModule:!1});var p=[];void 0!==window.PDFViewerApplication&&p.push("styles/pdfjs-overrides.css"),p.push("styles/highlights.css");for(var c=0,d=p;c<d.length;c++)t(s,i(e,d[c]))}}(document,{assetRoot:p,manifest:s,notebookAppUrl:h,profileAppUrl:u,sidebarAppUrl:y})}}else console.warn("The Hypothesis annotation tool is not supported in this browser. See https://web.hypothes.is/help/which-browsers-are-supported-by-hypothesis/.")}();
+<script>!function(){"use strict";var s={"scripts/annotator.bundle.js":"scripts/annotator.bundle.js?447cee","styles/annotator.css":"styles/annotator.css?4a2cb6","styles/annotator.css.map":"styles/annotator.css.map?969663","styles/highlights.css":"styles/highlights.css?6b4ebd","styles/highlights.css.map":"styles/highlights.css.map?241350","styles/katex.min.css":"styles/katex.min.css?94f096","styles/katex.min.css.map":"styles/katex.min.css.map?e7e03f","styles/pdfjs-overrides.css":"styles/pdfjs-overrides.css?c95edf","styles/pdfjs-overrides.css.map":"styles/pdfjs-overrides.css.map?1d8ac6","styles/sidebar.css":"styles/sidebar.css?3278f7","styles/sidebar.css.map":"styles/sidebar.css.map?6c7cc4","styles/ui-playground.css":"styles/ui-playground.css?fabf66","styles/ui-playground.css.map":"styles/ui-playground.css.map?057ae3","scripts/annotator.bundle.js.map":"scripts/annotator.bundle.js.map?b7dc0f","scripts/sidebar.bundle.js":"scripts/sidebar.bundle.js?f88f03","scripts/ui-playground.bundle.js":"scripts/ui-playground.bundle.js?e9e4b6","scripts/sidebar.bundle.js.map":"scripts/sidebar.bundle.js.map?98aad5","scripts/ui-playground.bundle.js.map":"scripts/ui-playground.bundle.js.map?e91bdd"};function e(s){s.setAttribute("data-hypothesis-asset","")}function t(s,t){var o=s.createElement("link");o.rel="stylesheet",o.type="text/css",o.href=t,e(o),s.head.appendChild(o)}function o(s,t){var o=arguments.length>2&&void 0!==arguments[2]?arguments[2]:{},r=o.esModule,n=void 0===r||r,i=o.forceReload,a=void 0!==i&&i,l=s.createElement("script");n&&(l.type="module"),a&&(t+="#ts=".concat(Date.now())),l.src=t,l.async=!1,e(l),s.head.appendChild(l)}function r(s,t,o,r){var n=s.createElement("link");n.rel=t,n.href=r,n.type="application/annotator+".concat(o),e(n),s.head.appendChild(n)}function n(s,t,o){var r=s.createElement("link");r.rel="preload",r.as=t,r.href=o,"fetch"===t&&(r.crossOrigin="anonymous"),e(r),s.head.appendChild(r)}function i(s,e){return s.assetRoot+"build/"+s.manifest[e]}function a(s){var e=arguments.length>1&&void 0!==arguments[1]?arguments[1]:document;if(-1===s.indexOf("{"))return s;var t=function(){var s,e,t=(arguments.length>0&&void 0!==arguments[0]?arguments[0]:document).currentScript;return t?(s=t.src,(e=s.match(/(https?):\/\/([^:/]+)/))?{protocol:e[1],hostname:e[2]}:null):null}(e);if(!t)throw new Error("Could not process URL template because script origin is unknown");return s=(s=s.replace("{current_host}",t.hostname)).replace("{current_scheme}",t.protocol)}if(function(){var s=[()=>Object.fromEntries([]),()=>new URL(document.location.href),()=>new Request("https://hypothes.is"),()=>Element.prototype.attachShadow,()=>CSS.supports("display: grid"),()=>(document.evaluate("/html/body",document,null,XPathResult.ANY_TYPE,null),!0)];try{return s.every((s=>s()))}catch(s){return!1}}()){var l=function(s){for(var e={},t=s.querySelectorAll("script.js-hypothesis-config"),o=0;o<t.length;o++){var r=void 0;try{r=JSON.parse(t[o].textContent||"")}catch(s){console.warn("Could not parse settings from js-hypothesis-config tags",s),r={}}Object.assign(e,r)}return e}(document),p=a(l.assetRoot||"https://cdn.hypothes.is/hypothesis/1.1552.0/");if(document.querySelector("hypothesis-app")){!function(s,e){n(s,"fetch",e.apiUrl),n(s,"fetch",e.apiUrl+"links");for(var r=0,a=["scripts/sidebar.bundle.js"];r<a.length;r++)o(s,i(e,a[r]),{esModule:!0});for(var l=0,p=["styles/katex.min.css","styles/sidebar.css"];l<p.length;l++)t(s,i(e,p[l]))}(document,{assetRoot:p,manifest:s,apiUrl:l.apiUrl})}else{var c=function(){var s;return null===(s=(arguments.length>0&&void 0!==arguments[0]?arguments[0]:window).chrome)||void 0===s||null===(s=s.runtime)||void 0===s?void 0:s.id}();if(c&&!function(s){return!!(arguments.length>1&&void 0!==arguments[1]?arguments[1]:document).querySelector("script.js-hypothesis-config[data-extension-id=".concat(s,"]"))}(c))throw new Error("Could not start Hypothesis extension as configuration is missing");var d=l,h=a(d.notebookAppUrl||"https://hypothes.is/notebook"),u=a(d.profileAppUrl||"https://hypothes.is/user-profile"),y=a(d.sidebarAppUrl||"https://hypothes.is/app.html");!function(s,e){if(!s.querySelector('link[type="application/annotator+html"]')){r(s,"sidebar","html",e.sidebarAppUrl),r(s,"notebook","html",e.notebookAppUrl),r(s,"profile","html",e.profileAppUrl),n(s,"style",i(e,"styles/annotator.css")),r(s,"hypothesis-client","javascript",e.assetRoot+"build/boot.js");for(var a=0,l=["scripts/annotator.bundle.js"];a<l.length;a++)o(s,i(e,l[a]),{esModule:!1});var p=[];void 0!==window.PDFViewerApplication&&p.push("styles/pdfjs-overrides.css"),p.push("styles/highlights.css");for(var c=0,d=p;c<d.length;c++)t(s,i(e,d[c]))}}(document,{assetRoot:p,manifest:s,notebookAppUrl:h,profileAppUrl:u,sidebarAppUrl:y})}}else console.warn("The Hypothesis annotation tool is not supported in this browser. See https://web.hypothes.is/help/which-browsers-are-supported-by-hypothesis/.")}();
 </script>
 
 
