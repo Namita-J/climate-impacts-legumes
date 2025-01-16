@@ -23,7 +23,7 @@ runtime: shiny
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  echo = FALSE,
+  echo = TRUE,
   message = FALSE,
   warning = FALSE
 )
@@ -32,11 +32,11 @@ knitr::opts_chunk$set(
 ```{r packages,include=F,eval=T,echo=F}
 
 pacman::p_load(
-   knitr, readxl, httr, leaflet, dplyr, shiny, ggplot2
+   knitr, readxl, httr, leaflet, dplyr, shiny, ggplot2, tidyr
 )
 ```
 
-```{r reading in the data, include=F,eval=T,echo=F }
+```{r reading in the data, include=F,eval=T,echo=T }
 # Set a directory for downloaded data
 dl_dir <- "downloaded_data"
 
@@ -70,23 +70,25 @@ This vignette aims to explore the data on the projected impacts of climate chang
 
 ***Methodology:***
 
-*1. Search Terms Used*
+*1. Search terms used*
 
-*2. Screening Criteria Applied*
+*2. Screening criteria applied*
 
 *3. Screening outcomes*
 
-*4. Data Extraction Process*
+*4. Data extraction process*
 
 ***Data exploration:***
 
 *1. Distribution of papers in Africa*
 
-*2. Understanding how different practices reduce the impacts of climate change*
+*2. Comparisons between differnet legumes*
 
-*3. Treatment vs Control*
+3\. Comparing different climate scenarios
 
-*4. Comparisons between legumes*
+*4. Understanding how different practices reduce the impacts of climate change*
+
+5*. Treatment vs Control*
 
 ***Next steps:***
 
@@ -96,7 +98,7 @@ This vignette aims to explore the data on the projected impacts of climate chang
 
 # Literature Review
 
-# Methodology:
+# Methodology
 
 ## Search Terms Used
 
@@ -116,7 +118,7 @@ The following terms were used to capture studies focused on climate change, its 
 
 -   `(heat NEAR/2 (stress OR wave*))`
 
--   `((CO2 OR carbondioxide OR carbon-dioxide OR "carbon dioxide" OR "greenhouse gas*") NEAR/2 (emission* OR fertilisation* OR fertilization* OR increase* OR elevat* OR effect*))`
+-   `((CO2 OR carbondioxide OR carbon-dioxide ORM"carbon dioxide" OR "greenhouse gas*")NEAR/2 (emission* OR fertilisation* OR fertilization* OR increase* OR elevat* OR effect*))`
 
 -   `(temperature* NEAR/2 (increase* OR change* OR variabilite* OR global OR trend OR extreme))`
 
@@ -142,9 +144,7 @@ To ensure relevance to agricultural productivity and legumes, the following term
 
 **Geographical Filters**
 
-The search was further refined to include studies conducted in Africa, using the following geographical filters:
-
--   `CU=( Angola OR Benin OR Botswana OR Burkina Faso OR Burundi OR Cameroon OR Cape Verde OR Central African Republic OR Chad OR Comoros OR Congo (Democratic Republic) OR “Côte d'Ivoire” OR Djibouti OR “Equatorial Guinea” OR Eritrea OR Ethiopia OR Gabon OR “The Gambia” OR Ghana OR Guinea OR “Guinea-Bissau” OR Kenya OR Lesotho OR Liberia OR Madagascar OR Malawi OR Mali OR Mauritania OR Mauritius OR Mozambique OR Namibia OR Niger OR Nigeria OR Réunion OR Rwanda OR “Sao Tome and Principe” OR Senegal OR Seychelles OR “Sierra Leone” OR Somalia OR “South Africa” OR Sudan OR Swaziland OR Tanzania OR Togo OR Uganda OR “Western Sahara” OR Zambia OR Zimbabwe)`
+The search was further refined to include studies conducted in Africa.
 
 **Logical Combination**
 
@@ -154,7 +154,7 @@ The final search string combined all the above elements using the Boolean operat
 
 This comprehensive search strategy was implemented to identify all relevant studies addressing climate change impacts on agricultural productivity, particularly legumes, in Africa.
 
-```{r search-terms, echo=FALSE, message=FALSE}
+```{r search-terms, echo=T, message=FALSE}
 # Create a data frame to hold search terms
 
 search_terms <- data.frame(
@@ -185,7 +185,11 @@ kable(search_terms, caption = "Search Terms for Projected of Climate Impacts on 
   
 ```
 
-```{r distribution of papers in Africa, echo=FALSE, message=FALSE}
+# Data exploration
+
+## Distribution of papers in Africa
+
+```{r distribution of papers in Africa, echo=T, message=FALSE}
 
 # Define specific crops for filtering
 selected_crops <- c("Common bean", "Groundnut", "Cowpea", "Soybean", "Common Bean", 
@@ -202,7 +206,6 @@ filtered_data <- dataset %>%
 
 # UI
 ui <- fluidPage(
-  titlePanel("Interactive Map of Studies by Crop in Africa"),
   sidebarLayout(
     sidebarPanel(
       selectInput(
@@ -255,7 +258,15 @@ shinyApp(ui = ui, server = server)
 
 ```
 
-```{r box plots of different legumes, echo=FALSE, message=FALSE}
+## Comparisons between different legumes
+
+This script analyzes the impact of climate on the yield of selected legumes by filtering the dataset to include specific crops with available data on climate impacts, ensuring no missing values in the Climate impacts (%) column. The data is grouped by crop, and the number of observations for each crop is calculated to provide context for the analysis.
+
+The plot reveals the distribution of climate impacts across different crops, highlighting trends in the data.Some crops, such as Common Bean and Groundnut, exhibit a wider range of climate impacts, with both positive and negative extremes. In contrast, crops like Green Grams show relatively limited variability, suggesting more consistent responses to climate factors. However, this is also attributed the number of papers done for each of these crops.
+
+Additionally, certain crops, such as Cowpea and Soybean, display clusters of outliers, indicating occasional extreme climate impacts that deviate from the general trend.
+
+```{r box plots of different legumes, echo=T, message=FALSE}
 # Filter data for specific crops
 filtered_data <- dataset %>%
   filter(Crop %in% selected_crops) %>%
@@ -274,7 +285,7 @@ ggplot(filtered_data, aes(x = `Climate impacts (%)`, y = reorder(Crop, Count, .d
   labs(
     x = "Climate Impact (%)",
     y = "Crop (n)",
-    title = "Climate Impact (%) on Selected Crops"
+    title = "Climate Impact (%) on yield of Selected Crops"
   ) +
   theme_minimal(base_size = 14) +
   theme(
@@ -284,14 +295,22 @@ ggplot(filtered_data, aes(x = `Climate impacts (%)`, y = reorder(Crop, Count, .d
   )
 ```
 
+## Comparing different climate scenarios
 
-```{r box plots of different climate scenarios, echo=FALSE, message=FALSE}
-# Filter data for specific crops
+This analysis explores how different climate scenarios impact crop yields, combining insights from both CMIP5 (RCP scenarios) and CMIP6 (SSP scenarios). The dataset focuses on selected crops and scenarios where reliable data on Climate impacts (%) is available, allowing for a meaningful comparison. By including both RCPs and SSPs, the analysis bridges older and newer climate modeling frameworks, recognizing the ongoing relevance of CMIP5 data in climate research and its ability to provide valuable insights alongside the more recent CMIP6 projections.
+
+The plot reveals some clear trends. Under high-emission scenarios like RCP8.5 and SSP585, the variability in climate impacts is much wider, with a notable number of positive impacts, suggesting that certain crops might benefit under these extreme warming conditions. On the other hand, low-emission scenarios like SSP126 and RCP2.6 show more consistent impacts, with narrower ranges and fewer extreme values. This reflects the more moderated effects expected when strong mitigation measures are implemented.
+
+Despite the release of CIMP6,this study chose to retain crop yield projections done with CIMP5 and CIMP3 as they still provide valuable insights.
+
+```{r box plots of different climate scenarios, echo=T, message=FALSE}
+# Filter data for specific crops and climate scenarios
 filtered_data <- dataset %>%
   filter(Crop %in% selected_crops) %>%
-  filter(!is.na(`Climate impacts (%)`))  # Ensure 'Climate impacts (%)' is not NA
+  filter(!is.na(`Climate impacts (%)`)) %>%  # Ensure 'Climate impacts (%)' is not NA
+  filter(`Climate scenario` %in% c("RCP8.5", "RCP4.5", "RCP2.6", "SSP370", "SSP126", "SSP585"))  # Include only specified scenarios
 
-# Count observations for each crop
+# Count observations for each climate scenario
 filtered_data <- filtered_data %>%
   group_by(`Climate scenario`) %>%
   mutate(Count = n()) %>%
@@ -303,8 +322,8 @@ ggplot(filtered_data, aes(x = `Climate impacts (%)`, y = reorder(`Climate scenar
   geom_vline(xintercept = 0, color = "red", linetype = "dashed") +
   labs(
     x = "Climate Impact (%)",
-    y = "Crop (n)",
-    title = "Climate Impact (%) for different scenarios"
+    y = "Climate Scenario",
+    title = "Climate Impact (%) on yield for different Climate Scenarios"
   ) +
   theme_minimal(base_size = 14) +
   theme(
@@ -312,5 +331,100 @@ ggplot(filtered_data, aes(x = `Climate impacts (%)`, y = reorder(`Climate scenar
     axis.title.x = element_text(size = 12),
     axis.text.y = element_text(size = 10)
   )
+
+
+```
+
+## Understanding how different practices reduce the impacts of climate change
+
+This script explores how different adaptation strategies help mitigate the effects of climate change on crop yields. The analysis focuses on selected crops with valid data on Climate impacts (%) and groups the strategies to evaluate their effectiveness. The plot reveals that approaches like using high fertilizer levels and selecting specific cultivars are particularly effective at reducing negative impacts. In contrast, strategies like late planting show greater variability and higher risks. Combined strategies stand out for their consistent results, offering solutions to enhance crop resilience.
+
+```{r box plots of different strategies, echo=T, message=FALSE}
+# Filter data for specific crops
+filtered_data <- dataset %>%
+  filter(Crop %in% selected_crops) %>%
+  filter(!is.na(`Climate impacts (%)`))  # Ensure 'Climate impacts (%)' is not NA
+
+# Count observations for each crop
+filtered_data <- filtered_data %>%
+  group_by(`Adaptation type`) %>%
+  mutate(Count = n()) %>%
+  ungroup()
+
+# Create the boxplot
+ggplot(filtered_data, aes(x = `Climate impacts (%)`, y = reorder(`Adaptation type`, Count, .desc = TRUE))) +
+  geom_boxplot(outlier.size = 1, outlier.color = "red") +
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed") +
+  labs(
+    x = "Climate Impact (%)",
+    y = "Adaptation type",
+    title = "Climate Impact (%) on yield with different adaptation strategies"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.title.y = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    axis.text.y = element_text(size = 10)
+  )
+```
+
+## Treatment vs control
+
+The treatment vs. control approach greatly reduces the number of studies included (7), as most focus on a single adaptation strategy rather than projecting both scenarios. This script filters the dataset for selected crops, separating "no adaptation" (control) and specific adaptation strategies (treatment). The two groups are merged based on shared attributes like site, crop, and climate scenario, allowing for direct comparisons.
+
+The plot shows yield changes across management strategies, with "no adaptation" as the baseline. Strategies like combination approaches and irrigation consistently improve yields, while others, such as late planting, show mixed results. Despite limited data availability, this analysis highlights the value of directly comparing treatment and control to assess the real impact of adaptation strategies
+
+```{r trt vs control, echo=T, message=FALSE}
+
+filtered_data <- dataset %>%
+  filter(Crop %in% selected_crops)
+
+# Create the control dataset
+control_data <- filtered_data %>%
+  filter(`Adaptation type` == "No") %>%
+  rename(YieldChange_Control = `Climate impacts (%)`)
+
+# Create the treatment dataset
+treatment_data <- filtered_data %>%
+  filter(`Adaptation type` != "No") %>%
+  rename(YieldChange_Treatment = `Climate impacts (%)`)
+
+# Merge control and treatment datasets
+merged_data <- merge(
+  control_data,
+  treatment_data,
+  by = c("Ref No", "Future_Mid-point", "Climate scenario",  
+         "Site(location)", "Crop","GCM/RCM","Crop Model"),
+  all = FALSE
+)
+
+# Separate no adaptation and other strategies
+plot_data <- merged_data %>%
+  pivot_longer(
+    cols = c(YieldChange_Control, YieldChange_Treatment),
+    names_to = "Management_Type",
+    values_to = "YieldChange"
+  ) %>%
+  mutate(
+    Management_Group = case_when(
+      Management_Type == "YieldChange_Control" ~ "no adaptation",
+      TRUE ~ `Adaptation type.y`
+    )
+  )
+
+ggplot(plot_data, aes(
+  x = YieldChange,
+  y = Management_Group,
+  color = Crop
+)) +
+  geom_point(size = 3, alpha = 0.8) +
+  labs(
+    title = "Yield Change: Control vs. Treatment (Filtered)",
+    x = "Yield Change (%)",
+    y = "Management Group",
+    color = "Crop"
+  ) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 10))
 
 ```
