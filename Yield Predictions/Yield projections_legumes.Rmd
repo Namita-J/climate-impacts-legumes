@@ -84,11 +84,11 @@ This vignette aims to explore the data on the projected impacts of climate chang
 
 *2. Comparisons between differnet legumes*
 
-3\. Comparing different climate scenarios
+*3. Comparing different climate scenarios*
 
 *4. Understanding how different practices reduce the impacts of climate change*
 
-5*. Treatment vs Control*
+*5. Treatment vs Control*
 
 ***Next steps:***
 
@@ -184,6 +184,24 @@ search_terms <- data.frame(
 kable(search_terms, caption = "Search Terms for Projected of Climate Impacts on Legumes in Africa")
   
 ```
+
+## Screening criteria applied
+
+This screening criteria is designed to systematically review papers focusing on crop yield impacts, applying both inclusion and exclusion criteria based on specific parameters. The framework ensures that the selected studies align with the objectives of the review.
+
+*Population (P):* The review includes studies focusing on legume crops grown in African countries. The geographic scope is strictly limited to Africa. Studies involving crops other than legumes are excluded.
+
+*Intervention/Practice (I):* Eligible studies must be modeling-based and provide future yield projections. Studies incorporating adaptation strategies, such as reduced tillage or irrigation, are considered highly valuable but not mandatory for inclusion.
+
+*Comparison (C):* Studies should ideally include a control group for comparison. However, for modeling studies, this requirement is flexible and depends on the nature of the projections (e.g., baseline scenarios can serve as controls).
+
+*Outcomes (O):* The primary outcome of interest is projected yield data for legume crops. Studies reporting projections based on different scenarios (e.g., climate change impacts, adaptation strategies) are prioritized.
+
+*Study Design (S):* Only modeling studies are eligible for inclusion. Studies must explicitly include projections for future yields, either with or without adaptation strategies.
+
+## **Screening Outcomes**
+
+![](images/PRISMA Diagram legumes.png)
 
 # Data exploration
 
@@ -428,3 +446,371 @@ ggplot(plot_data, aes(
   theme(axis.text.y = element_text(size = 10))
 
 ```
+
+# Next steps
+
+## OpenAlex results
+
+***OpenAlex query***
+
+This script automates the process of querying the OpenAlex API for research on climate change, agriculture, and African regions. It constructs Boolean search strings for climate, agriculture, and regional terms, combines them into a final query, and retrieves results within a specified date range (1970--2024). The results, including key details like title and DOI, are saved in a CSV file for analysis.\
+\
+The result was **2492** search hits.
+
+![](OpenAlex/OpenAlex/Relevance scores of OpenAlex refs.png)
+
+The majority of references have low relevance scores, as shown by the high frequency of scores concentrated near zero. There is a rapid decline in frequency as relevance scores increase, with very few references scoring above 100. This pattern suggests that most of the retrieved works have only moderate alignment with the search criteria, while a small subset demonstrates stronger relevance to the specified terms.\
+\
+Unhide to see the script
+
+```{r Openalex query, eval=F, echo=T, message=FALSE}
+# Carr et al search terms testing
+# 0) Set up workspace ####
+# 0.1) Load packages #####
+# Use p_load to install if not present and load the packages
+pacman::p_load(data.table,openalexR)
+
+# 0.2) Create functions #####
+add_quotes <- function(vector) {
+  sapply(vector, function(term) {
+    if (grepl("\\s", term)) {
+      return(shQuote(term, type = "cmd"))
+    } else {
+      return(term)
+    }
+  }, USE.NAMES = FALSE)
+}
+# Specify your main project directory on your local drive
+project <- "1. Synthesis_Climate change impacts on legumes/OpenAlex"
+
+# Define the path again in case it reset
+search_data_dir <- "OpenAlex/search_data"
+
+# Create the directory if it does not exist
+if (!dir.exists(search_data_dir)) {
+  dir.create(search_data_dir, recursive = TRUE)
+}
+
+# Check if the directory now exists
+print(dir.exists(search_data_dir))  # Should print TRUE if created successfully
+
+# 1) Create terms ####
+# Read in additional animal breed terms provided by Claudia Arndt's team
+climate_terms <- c("climate change", "global warming", "drought", "rainfall variability", "heat stress", 
+                   "CO2 emission", "greenhouse gas", "temperature increase", "extreme event")
+agriculture_terms <- c("agriculture production", "crop yield", "food security", "crop performance", 
+                       "plant biomass", "harvest")
+region_terms <- c("Angola", "Benin", "Botswana", "Burkina Faso", "Cameroon", "Ethiopia", "Ghana", 
+                  "Kenya", "Malawi", "Nigeria", "South Africa", "Tanzania", "Uganda", "Zimbabwe")
+
+
+# Convert to Boolean expressions
+climate_boolean <- paste0("(", paste0(climate_terms, collapse = " OR "), ")")
+agriculture_boolean <- paste0("(", paste0(agriculture_terms, collapse = " OR "), ")")
+region_boolean <- paste0("(", paste0(region_terms, collapse = " OR "), ")")
+
+# Final combined search string
+final_search_string <- paste(
+  climate_boolean, 
+  "AND", 
+  agriculture_boolean, 
+  "AND", 
+  region_boolean
+)
+
+# Save terms for reference
+terms <- list(
+  climate = climate_boolean,
+  agriculture = agriculture_boolean,
+  region = region_boolean,
+  full_search = final_search_string
+)
+
+save(terms, file = file.path(search_data_dir, "climate_agriculture_region_search_terms.RData"))
+
+# Set date range for the search
+from_year <- "1970-01-01"
+to_year <- "2024-10-30"
+overwrite <- TRUE  # Set to overwrite existing files if needed
+
+# Set prefix for file naming
+prefix <- "openalex"
+save_file <- file.path(search_data_dir, paste0(prefix, "_climate_agriculture_region15.csv"))
+
+# Run OpenAlex query
+if (!file.exists(save_file) | overwrite) {
+  # Create the API endpoint with the search string
+  api_endpoint <- oa_query(
+    entity = "works",
+    title_and_abstract.search = terms$full_search,
+    from_publication_date = from_year,
+    to_publication_date = to_year
+  )
+  
+  # Check if the search string is within the allowed length
+  if (nchar(api_endpoint) > 4000) {
+    stop(paste0("Encoded search string has ", nchar(api_endpoint), " characters. Max allowed is 4000."))
+  }
+  
+  # Execute the query and save the results
+  hits <- oa_request(query_url = api_endpoint)
+  hits_tab <- data.table(oa2df(hits, entity = "works"))
+  
+  # Select and save relevant fields
+  hits_tab <- hits_tab[, .(id, display_name, doi, url, relevance_score, language, type, publication_date)]
+  fwrite(hits_tab, file = save_file)
+}
+###########################################################################
+# Test a simpler query without the region filter
+test_search_string <- paste(climate_boolean, "AND", agriculture_boolean)
+api_endpoint_test <- oa_query(
+  entity = "works",
+  title_and_abstract.search = test_search_string,
+  from_publication_date = from_year,
+  to_publication_date = to_year
+)
+# Execute and check results
+test_hits <- oa_request(query_url = api_endpoint_test)
+test_hits_tab <- data.table(oa2df(test_hits, entity = "works"))
+print(nrow(test_hits_tab))  # Check how many results this yields
+
+```
+
+***OpenAlex valibation***
+
+This script compares results from two bibliographic databases, Web of Science (WoS) and OpenAlex, to assess overlap and relevance in identifying studies on climate change impacts on legumes. It begins by loading accepted and rejected WoS references, cleaning and standardizing titles and DOIs for consistent matching.
+
+OpenAlex query results are also processed similarly, ensuring compatibility. Matches are identified by comparing titles and DOIs across datasets, with duplicates removed. Matched data is analyzed to assess overlap, including creating histograms to visualize the distribution of relevance scores for accepted and rejected references. Additionally, the script includes functionality to fetch records from OpenAlex using DOIs and partial title matching.
+
+```{r openalex validation, eval=F, echo=T, message=FALSE}
+#Testing OpenAlex vs Wos
+
+#Loading accepted and rejected WoS results 
+# Load necessary package
+library(openalexR)
+library(data.table)
+library(ggplot2)
+
+
+# Define the file path
+accepted <- "C:/Users/JNamita/OneDrive - CGIAR/PhD- Namita/1. Synthesis_Climate change impacts on legumes/WoS/To Extract.csv"
+rejected <- list(
+  "C:/Users/JNamita/OneDrive - CGIAR/PhD- Namita/1. Synthesis_Climate change impacts on legumes/WoS/1. No crop.csv",
+  "C:/Users/JNamita/OneDrive - CGIAR/PhD- Namita/1. Synthesis_Climate change impacts on legumes/WoS/1. No future projections.csv",
+  "C:/Users/JNamita/OneDrive - CGIAR/PhD- Namita/1. Synthesis_Climate change impacts on legumes/WoS/2. No future projections.csv",
+  "C:/Users/JNamita/OneDrive - CGIAR/PhD- Namita/1. Synthesis_Climate change impacts on legumes/WoS/2. No outcome.csv",
+  "C:/Users/JNamita/OneDrive - CGIAR/PhD- Namita/1. Synthesis_Climate change impacts on legumes/WoS/3. Not Africa.csv",
+  "C:/Users/JNamita/OneDrive - CGIAR/PhD- Namita/1. Synthesis_Climate change impacts on legumes/WoS/3. Synthesis.csv",
+  "C:/Users/JNamita/OneDrive - CGIAR/PhD- Namita/1. Synthesis_Climate change impacts on legumes/WoS/4. No Yield.csv",
+  "C:/Users/JNamita/OneDrive - CGIAR/PhD- Namita/1. Synthesis_Climate change impacts on legumes/WoS/4. Not Africa.csv",
+  "C:/Users/JNamita/OneDrive - CGIAR/PhD- Namita/1. Synthesis_Climate change impacts on legumes/WoS/5. Yield stability-suitability.csv",
+  "C:/Users/JNamita/OneDrive - CGIAR/PhD- Namita/1. Synthesis_Climate change impacts on legumes/WoS/6. Non-modelled crop predictions.csv"
+)
+
+
+# Load the CSV file using fread from data.table for efficient reading
+accepted_data <- fread(accepted, header = TRUE)
+
+# Combine all rejected files into one data table
+rejected_data <- rbindlist(lapply(rejected, function(f) fread(file = f)), use.names = TRUE, fill = TRUE)
+
+# Preview the first few rows of the data to confirm it's loaded correctly
+head(accepted_data)
+head(rejected_data)
+
+##Finding matches between accepted references and openalex hits
+hits <- fread("C:/Users/JNamita/OneDrive - CGIAR/PhD- Namita/1. Synthesis_Climate change impacts on legumes/OpenAlex/search_data/openalex_climate_agriculture_region15.csv")
+# Step 1: Rename columns for consistency
+setnames(rejected_data, old = "Title", new = "display_name")
+setnames(rejected_data, old = "DOI", new = "doi")  # Assuming DOI is the column name in accepted_data for DOI
+setnames(accepted_data, old = "Title", new = "display_name")
+setnames(accepted_data, old = "DOI", new = "doi")  # Assuming DOI is the column name in accepted_data for DOI
+
+# Step 2: Clean and standardize the titles
+rejected_data[, display_name := tolower(trimws(display_name))]  # Trim whitespace and make lowercase
+accepted_data[, display_name := tolower(trimws(display_name))]
+hits[, display_name := tolower(trimws(display_name))]     # Trim whitespace and make lowercase
+
+# Step 3: Clean and standardize the DOIs
+hits[, doi := tolower(sub("https://doi.org/", "", doi))]
+rejected_data[, doi := tolower(trimws(doi))]  # Ensure lowercase and trim whitespace in accepted_data DOIs
+accepted_data[, doi := tolower(trimws(doi))]
+
+rejected_data_unique <- unique(rejected_data, by = "doi")
+accepted_data_unique <- unique(accepted_data, by = "doi")
+hits_unique <- unique(hits, by = "doi")
+
+# Check a few sample DOIs that should match
+print("Sample of DOIs in accepted_data:")
+print(head(accepted_data$doi, 5))
+
+print("Sample of DOIs in hits:")
+print(head(hits$doi, 5))
+
+print("Sample of Titles in accepted_data:")
+print(head(accepted_data$display_name, 5))
+
+print("Sample of Titles in hits:")
+print(head(hits$display_name, 5))
+
+# Step 3.1: Perform the merge based on display_name and doi- for rejected papers
+# This will return only the rows in both datasets where the titles and DOIs match
+matched_by_title <- merge(rejected_data_unique, hits_unique[, .(display_name, doi, relevance_score)], 
+                          by = "display_name", all = FALSE)
+# Perform the merge with allow.cartesian set to TRUE
+matched_by_doi <- merge(rejected_data_unique, hits_unique[, .(display_name, doi, relevance_score)], 
+                        by = "doi", all = FALSE)
+dup_dois_rejected <- rejected_data[duplicated(rejected_data$doi), ]
+cat("Number of duplicate DOIs in rejected_data:", nrow(dup_dois_rejected), "\n")
+dup_dois_accepted <- accepted_data[duplicated(accepted_data$doi), ]
+cat("Number of duplicate DOIs in accepted_data:", nrow(dup_dois_accepted), "\n")
+dup_dois_hits <- hits[duplicated(hits$doi), ]
+cat("Number of duplicate DOIs in hits:", nrow(dup_dois_hits), "\n")
+
+# Combine the two data tables, allowing for missing columns in either
+matched_data<- unique(rbindlist(list(matched_by_title, matched_by_doi), fill = TRUE), 
+                       by = c("display_name", "doi"))
+
+# Step 3.2: Perform the merge based on display_name and doi for accepted papers
+# This will return only the rows in both datasets where the titles and DOIs match
+matched_by_title_a <- merge(accepted_data_unique, hits_unique[, .(display_name, doi, relevance_score)], 
+                          by = "display_name", all = FALSE)
+# Perform the merge with allow.cartesian set to TRUE
+matched_by_doi_a <- merge(accepted_data_unique, hits_unique[, .(display_name, doi, relevance_score)], 
+                        by = "doi", all = FALSE)
+dup_dois_rejected <- accepted_data[duplicated(accepted_data$doi), ]
+cat("Number of duplicate DOIs in rejected_data:", nrow(dup_dois_accepted), "\n")
+
+dup_dois_hits <- hits[duplicated(hits$doi), ]
+cat("Number of duplicate DOIs in hits:", nrow(dup_dois_hits), "\n")
+
+# Combine the two data tables, allowing for missing columns in either
+matched_data_a <- unique(rbindlist(list(matched_by_title_a, matched_by_doi_a), fill = TRUE), 
+                       by = c("display_name", "doi"))
+
+
+# Preview the combined matched data
+print("Preview of combined matched data:")
+print(head(matched_data_a))
+
+
+# Plot the histogram of relevance_score fir one dataset
+ggplot(hits_unique, aes(x = relevance_score)) +
+  geom_histogram(binwidth = 20, color = "black", fill = "grey") +
+  labs(
+    title = "Distribution of Relevance Score",
+    x = "Relevance Score",
+    y = "Frequency"
+  ) +
+  theme_minimal()
+
+# Plot the histogram of relevance_score for 2 datasets
+# Add a "source" column to each dataset
+matched_data$source <- "matched_data"
+matched_data_a$source <- "matched_data_a"
+hits$source <- "hits"
+
+# Select only the `relevance_score` and `source` columns, and combine them
+combined_data <- rbind(
+  matched_data[, .(relevance_score, source)],
+  matched_data_a[, .(relevance_score, source)]
+)
+
+# Convert `source` to a factor with specific levels
+# combined_data$source <- factor(combined_data$source, levels = c("matched_data", "matched_data_a", "hits_unique"))
+
+# Plot the combined histogram with different colors for each dataset
+# Plot the combined histogram with custom legend labels
+ggplot(combined_data, aes(x = relevance_score, fill = source)) +
+  geom_histogram(binwidth = 20, position = "identity", alpha = 0.6, color = "black") +
+  scale_fill_manual(
+    values = c("matched_data" = "skyblue", "matched_data_a" = "orange"),
+    labels = c("matched_data" = "Rejected References", 
+               "matched_data_a" = "Accepted References"
+               )
+  ) +
+  labs(
+    title = "Distribution of Relevance Score Across Datasets",
+    x = "Relevance Score",
+    y = "Frequency",
+    fill = "Dataset"
+  ) +
+  theme_minimal()
+
+# Assume that `accepted_data` is already cleaned and contains the relevant DOIs and Titles
+# Convert DOI column to lowercase and clean up any DOI links
+accepted_data_unique[, doi := tolower(trimws(gsub("https://doi.org/|http://dx.doi.org/", "", doi)))]
+accepted_data_unique[, display_name := tolower(gsub("[^a-zA-Z0-9 ]", "", display_name))]  # Clean title for OpenAlex search
+
+# Fetch OpenAlex records for DOIs
+oa_dois <- data.table(oa_fetch(
+  entity = "works",
+  doi = accepted_data_unique[!is.na(doi), doi],
+  verbose = TRUE
+))[, indexed_oa := "yes"
+][, .(doi, indexed_oa)]  # Keep only DOI and index status columns
+
+# Clean up DOI format in OpenAlex data to match accepted_data format
+oa_dois[, doi := trimws(gsub("https://doi.org/|http://dx.doi.org/", "", doi))]
+
+# Fetch OpenAlex records for titles (using partial matching by title search)
+oa_titles <- rbindlist(lapply(1:nrow(accepted_data), function(i) {
+  data <- data.table(oa_fetch(
+    entity = "works",
+    display_name.search = accepted_data[i, display_name],
+    verbose = TRUE
+  ))[, indexed_oa := "yes"
+  ][, .(title = accepted_data[i, display_name], indexed_oa)]
+  data
+}))
+
+################################################################
+# Ensure both datasets are data tables
+library(data.table)
+accepted_data <- as.data.table(accepted_data)
+test_hits_tab <- as.data.table(test_hits_tab)
+
+# Step 1: Standardize and Clean `display_name` and `doi` Columns
+accepted_data[, display_name := tolower(trimws(display_name))]  # Convert titles to lowercase and trim whitespace
+test_hits_tab[, display_name := tolower(trimws(display_name))]
+
+# Clean and standardize DOIs
+accepted_data[, doi := tolower(trimws(gsub("https://doi.org/", "", doi)))]
+test_hits_tab[, doi := tolower(trimws(gsub("https://doi.org/", "", doi)))]
+
+# Step 2: Match by `display_name` (Title)
+matched_by_title_test <- merge(
+  accepted_data, 
+  test_hits_tab[, .(display_name, doi, relevance_score)],  # Keep only necessary columns
+  by = "display_name", 
+  all = FALSE, 
+  allow.cartesian = TRUE  # Allows for multiple matches if there are duplicate titles
+)
+
+# Step 3: Match by `doi`
+matched_by_doi <- merge(
+  accepted_data, 
+  test_hits_tab[, .(display_name, doi, relevance_score)], 
+  by = "doi", 
+  all = FALSE, 
+  allow.cartesian = TRUE
+)
+
+# Step 4: Combine the Results and Remove Duplicates
+# Use rbindlist to combine matches by title and by DOI
+matched_data <- unique(rbindlist(list(matched_by_title, matched_by_doi), fill = TRUE), by = c("display_name", "doi"))
+
+# Step 5: Preview Results
+print("Preview of matched data between accepted_data and test_hits_tab:")
+print(head(matched_data))
+cat("Total number of matches found:", nrow(matched_data), "\n")
+
+```
+
+![](OpenAlex/OpenAlex/Relevance scores of rejected papers_merged.png)
+
+There were only 3 matches with accepted papers from WoS.
+
+Screening OpenAlex references may give us a few more papers to add
+
+## An analysis with other varibles
