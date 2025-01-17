@@ -1,5 +1,5 @@
 ---
-title: "Climate Change Impacts on Legumes"
+title: "Climate Change Impacts on Legumes Yields"
 author: "Namita Joshi"
 date: "`r Sys.Date()`"
 output:
