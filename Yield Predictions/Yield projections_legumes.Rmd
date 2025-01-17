@@ -16,7 +16,7 @@ vignette: >
 comments:
   utterances:
     repo: Namita-J/climate-impacts-legumes
-runtime: shiny
+
 ---
 
 ```{r}
@@ -32,7 +32,8 @@ knitr::opts_chunk$set(
 ```{r packages,include=F,eval=T,echo=F}
 
 pacman::p_load(
-   knitr, readxl, httr, leaflet, dplyr, shiny, ggplot2, tidyr
+   knitr, readxl, httr, leaflet, dplyr, shiny, ggplot2, tidyr, sf, rnaturalearth,
+   rnaturalearthdata
 )
 ```
 
@@ -48,6 +49,14 @@ if(!dir.exists(dl_dir)){
 # Define the URL and local path for your file
 data_url <- "https://raw.githubusercontent.com/Namita-J/climate-impacts-legumes/main/Yield%20Predictions/yield_predictions_data.xlsx"
 data_local <- file.path(getwd(), dl_dir, "yield_predictions_data.xlsx")
+
+# Set whether to overwrite the file if it already exists
+overwrite <- TRUE
+
+# Check if the file exists and remove it if overwrite is TRUE
+if (file.exists(data_local) & overwrite) {
+  file.remove(data_local)
+}
 
 # Download the file (set 'update=TRUE' to refresh the local copy)
 update <- TRUE
@@ -67,6 +76,7 @@ head(dataset)
 This vignette aims to explore the data on the projected impacts of climate change on legume crops in Africa. It will explore the following:
 
 ***Literature Review***
+needs work
 
 ***Methodology:***
 
@@ -80,15 +90,17 @@ This vignette aims to explore the data on the projected impacts of climate chang
 
 ***Data exploration:***
 
-*1. Distribution of papers in Africa*
+*1. Are legumes under-researched compared to cereals?*
 
-*2. Comparisons between differnet legumes*
+*2. Distribution of papers in Africa*
 
-*3. Comparing different climate scenarios*
+*3. Comparisons between different legumes*
 
-*4. Understanding how different practices reduce the impacts of climate change*
+*4. Comparing different climate scenarios*
 
-*5. Treatment vs Control*
+*5. Understanding how different practices reduce the impacts of climate change*
+
+*6. Treatment vs Control*
 
 ***Next steps:***
 
@@ -199,15 +211,98 @@ This screening criteria is designed to systematically review papers focusing on 
 
 *Study Design (S):* Only modeling studies are eligible for inclusion. Studies must explicitly include projections for future yields, either with or without adaptation strategies.
 
-## **Screening Outcomes**
+## Screening Outcomes
 
-![](images/PRISMA Diagram legumes.png)
+![PRISMA Diagram for Legumes](https://raw.githubusercontent.com/Namita-J/climate-impacts-legumes/main/Yield%20Predictions/images/PRISMA%20Diagram%20legumes.png)
+
 
 # Data exploration
 
+## Are legumes under-researched compared to cereals?
+```{r year distribution of papers, echo=T, message=FALSE}
+# Define cereals and legumes
+cereals <- c("Maize", "Rice", "Wheat", "Sorghum", "Millet", "Pearl millet")
+legumes <- c("Common Bean", "Groundnut", "Cowpea", "Soybean", "Bambara", 
+             "Chickpea", "Bush Bean", "Climbing Bean", "Faba Bean", "Green grams")
+
+# Filter dataset for cereals and legumes and keep unique combinations of Reference and doi
+pub_year_data <- dataset %>%
+  filter(Crop %in% c(cereals, legumes)) %>%  # Filter only cereals and legumes
+  distinct(Reference, doi, Crop, .keep_all = TRUE) %>%  # Keep unique Reference + doi combinations per crop
+  mutate(
+    Crop_Type = ifelse(Crop %in% cereals, "Cereal", "Legume")  # Categorize crop type
+  )
+
+# Count unique publications by year and crop type
+publication_counts <- pub_year_data %>%
+  group_by(`Publication year`, Crop_Type) %>%
+  summarise(Count = n(), .groups = "drop")  # Count total unique publications per year and type
+
+# Plot the data
+ggplot(publication_counts, aes(x = `Publication year`, y = Count, fill = Crop_Type)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(
+    title = "Number of Publications per Year for Cereals and Legumes",
+    x = "Publication Year",
+    y = "Number of Publications",
+    fill = "Crop Type"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+
 ## Distribution of papers in Africa
 
-```{r distribution of papers in Africa, echo=T, message=FALSE}
+```{r distribution of papers in Africa Static, echo=T, message=FALSE}
+# Define specific crops for filtering
+selected_crops <- c("Common bean", "Groundnut", "Cowpea", "Soybean", "Common Bean", 
+                    "Bush Bean", "Climbing Bean", "Faba Bean", "Green grams")
+
+# Filter the dataset (replace 'dataset' with your actual dataset variable)
+filtered_data <- dataset %>%
+  filter(Crop %in% selected_crops) %>%
+  mutate(
+    longitude = as.numeric(longitude),
+    latitude = as.numeric(latitude)
+  ) %>%
+  filter(!is.na(longitude) & !is.na(latitude))  # Ensure valid coordinates
+
+# Convert to spatial data for mapping
+filtered_data_sf <- st_as_sf(
+  filtered_data,
+  coords = c("longitude", "latitude"),
+  crs = 4326
+)
+
+# Define a color palette for crops
+crop_colors <- RColorBrewer::brewer.pal(n = length(unique(filtered_data$Crop)), "Set3")
+
+# Load map data for Africa
+africa <- ne_countries(scale = "medium", continent = "Africa", returnclass = "sf")
+
+# Create the map
+ggplot() +
+  geom_sf(data = africa, fill = "gray95", color = "gray80") +  # Base map
+  geom_sf(data = filtered_data_sf, aes(color = Crop), size = 2, alpha = 0.8) +  # Crop points
+  scale_color_manual(values = crop_colors) +
+  labs(
+    title = "Study Locations by Crop",
+    color = "Crop"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)
+  )
+```
+
+
+```{r distribution of papers in Africa interactive, eval=F, echo=T, message=FALSE}
 
 # Define specific crops for filtering
 selected_crops <- c("Common bean", "Groundnut", "Cowpea", "Soybean", "Common Bean", 
@@ -457,7 +552,7 @@ This script automates the process of querying the OpenAlex API for research on c
 \
 The result was **2492** search hits.
 
-![](OpenAlex/OpenAlex/Relevance scores of OpenAlex refs.png)
+![](https://raw.githubusercontent.com/Namita-J/climate-impacts-legumes/main/Yield%20Predictions/OpenAlex/OpenAlex/Relevance%20scores%20of%20OpenAlex%20refs.png)
 
 The majority of references have low relevance scores, as shown by the high frequency of scores concentrated near zero. There is a rapid decline in frequency as relevance scores increase, with very few references scoring above 100. This pattern suggests that most of the retrieved works have only moderate alignment with the search criteria, while a small subset demonstrates stronger relevance to the specified terms.\
 \
@@ -807,7 +902,8 @@ cat("Total number of matches found:", nrow(matched_data), "\n")
 
 ```
 
-![](OpenAlex/OpenAlex/Relevance scores of rejected papers_merged.png)
+![](https://raw.githubusercontent.com/Namita-J/climate-impacts-legumes/main/Yield%20Predictions/OpenAlex/OpenAlex/Relevance%20scores%20of%20rejected%20papers_merged.png
+)
 
 There were only 3 matches with accepted papers from WoS.
 
