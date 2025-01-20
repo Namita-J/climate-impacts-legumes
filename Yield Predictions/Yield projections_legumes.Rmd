@@ -16,7 +16,6 @@ vignette: >
 comments:
   utterances:
     repo: Namita-J/climate-impacts-legumes
-
 ---
 
 ```{r}
@@ -75,8 +74,7 @@ head(dataset)
 
 This vignette aims to explore the data on the projected impacts of climate change on legume crops in Africa. It will explore the following:
 
-***Literature Review***
-needs work
+***Literature Review*** needs work
 
 ***Methodology:***
 
@@ -215,10 +213,10 @@ This screening criteria is designed to systematically review papers focusing on 
 
 ![PRISMA Diagram for Legumes](https://raw.githubusercontent.com/Namita-J/climate-impacts-legumes/main/Yield%20Predictions/images/PRISMA%20Diagram%20legumes.png)
 
-
 # Data exploration
 
 ## Are legumes under-researched compared to cereals?
+
 ```{r year distribution of papers, echo=T, message=FALSE}
 # Define cereals and legumes
 cereals <- c("Maize", "Rice", "Wheat", "Sorghum", "Millet", "Pearl millet")
@@ -252,7 +250,6 @@ ggplot(publication_counts, aes(x = `Publication year`, y = Count, fill = Crop_Ty
     axis.text.x = element_text(angle = 45, hjust = 1)
   )
 ```
-
 
 ## Distribution of papers in Africa
 
@@ -300,7 +297,6 @@ ggplot() +
     legend.text = element_text(size = 10)
   )
 ```
-
 
 ```{r distribution of papers in Africa interactive, eval=F, echo=T, message=FALSE}
 
@@ -902,11 +898,18 @@ cat("Total number of matches found:", nrow(matched_data), "\n")
 
 ```
 
-![](https://raw.githubusercontent.com/Namita-J/climate-impacts-legumes/main/Yield%20Predictions/OpenAlex/OpenAlex/Relevance%20scores%20of%20rejected%20papers_merged.png
-)
+![](https://raw.githubusercontent.com/Namita-J/climate-impacts-legumes/main/Yield%20Predictions/OpenAlex/OpenAlex/Relevance%20scores%20of%20rejected%20papers_merged.png)
 
 There were only 3 matches with accepted papers from WoS.
 
 Screening OpenAlex references may give us a few more papers to add
 
-## An analysis with other varibles
+## An analysis with other variables
+
+## Using protein conversion factors
+
+## Comparing different types of models. process based vs non-process based
+
+## Can we visualize the data in such a way:
+
+## ![](images/crop models for risk assessment____.jpg)

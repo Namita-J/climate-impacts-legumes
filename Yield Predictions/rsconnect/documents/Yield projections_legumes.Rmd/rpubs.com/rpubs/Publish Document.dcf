@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/1264173/3422501c4d2546cd8402ccb603e54d44
+bundleId: https://api.rpubs.com/api/v1/document/1264173/3422501c4d2546cd8402ccb603e54d44
+url: http://rpubs.com/NamitaJ/1264173
+version: 1
