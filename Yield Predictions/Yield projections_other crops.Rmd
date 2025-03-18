@@ -1,0 +1,72 @@
+---
+title: "Yield projections_other crops"
+author: "Namita Joshi"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_document:
+    toc: true                # Enables the table of contents
+    toc_float: true          # Makes the TOC a floating sidebar
+    code_folding: hide       # Hides code by default
+    includes:
+      after_body: hypothes.html  # This points to the custom HTML file
+vignette: >
+  %\VignetteIndexEntry{Legume yield projections}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+comments:
+  utterances:
+    repo: Namita-J/climate-impacts-legumes
+---
+
+```{r}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+```{r packages,include=F,eval=T,echo=F}
+
+pacman::p_load(
+   knitr, readxl, httr, leaflet, dplyr, shiny, ggplot2, tidyr, sf, rnaturalearth,
+   rnaturalearthdata
+)
+```
+
+```{r reading in the data, include=F,eval=T,echo=T }
+# Set a directory for downloaded data
+dl_dir <- "downloaded_data"
+
+# Create the directory if it doesn't already exist
+if(!dir.exists(dl_dir)){
+  dir.create(dl_dir, showWarnings = FALSE)
+}
+
+# Define the URL and local path for your file
+data_url <- "https://raw.githubusercontent.com/Namita-J/climate-impacts-legumes/main/Yield%20Predictions/yield_predictions_data.xlsx"
+data_local <- file.path(getwd(), dl_dir, "yield_predictions_data.xlsx")
+
+# Set whether to overwrite the file if it already exists
+overwrite <- TRUE
+
+# Check if the file exists and remove it if overwrite is TRUE
+if (file.exists(data_local) & overwrite) {
+  file.remove(data_local)
+}
+
+# Download the file (set 'update=TRUE' to refresh the local copy)
+update <- TRUE
+if (update) {
+  download.file(data_url, data_local, mode = "wb")  # Write in binary mode
+}
+
+# Read only the "Dataset" tab from the Excel file
+dataset <- readxl::read_excel(data_local, sheet = "Dataset")
+
+# Display a preview of the data
+head(dataset)
+```
+
