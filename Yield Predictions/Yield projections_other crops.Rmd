@@ -72,30 +72,17 @@ head(dataset)
 
 
 ```{r distribution of papers in Africa Static, echo=T, message=FALSE}
-# Define specific crops to exclude
-excluded_crops <- c("Common bean", "Groundnut", "Cowpea", "Soybean", "Common Bean", 
+excluded_crops <- c("Common bean", "Groundnut", "Cowpea", "Soybean", 
                     "Bush Bean", "Climbing Bean", "Faba Bean", "Green grams", "Chickpea")
 
-# Filter the dataset to exclude the specified crops
+# Filter dataset to exclude selected crops
 filtered_data <- dataset %>%
-  filter(!Crop %in% excluded_crops) %>%  # Exclude selected crops
+  filter(!Crop %in% excluded_crops) %>%
   mutate(
     longitude = as.numeric(longitude),
     latitude = as.numeric(latitude)
   ) %>%
   filter(!is.na(longitude) & !is.na(latitude))  # Ensure valid coordinates
-
-# Convert to spatial data for mapping
-filtered_data_sf <- st_as_sf(
-  filtered_data,
-  coords = c("longitude", "latitude"),
-  crs = 4326
-)
-
-# Define custom color palette with valid color names
-my_colors <- c("red", "blue", "green", "yellow", "purple", "orange", "pink", "brown",
-               "black", "cyan", "magenta", "gray", "navy", "limegreen", "gold", "violet",
-               "skyblue", "maroon", "darkolivegreen", "coral")
 
 # Count unique DOIs for each crop
 crop_study_counts <- filtered_data %>%
@@ -106,48 +93,58 @@ crop_study_counts <- filtered_data %>%
 # Generate crop labels with study count
 filtered_data <- filtered_data %>%
   left_join(crop_study_counts, by = "Crop") %>%
-  mutate(Crop_Label = paste0(Crop, " (", Study_Count, ")")) # Format as "Crop (Count)"
+  mutate(Crop_Label = paste0(Crop, " (", Study_Count, ")"))  # Format as "Crop (Count)"
 
-# Convert to spatial data for mapping
-filtered_data_sf <- st_as_sf(
-  filtered_data,
-  coords = c("longitude", "latitude"),
-  crs = 4326
+# Convert to spatial data
+filtered_data_sf <- st_as_sf(filtered_data, coords = c("longitude", "latitude"), crs = 4326)
+
+# Define a **bold & vibrant** color palette
+crop_colors <- c(
+  "Bambara" = "red",
+  "Cassava" = "blue",
+  "Cocoyam" = "limegreen",
+  "Common Bean" = "darkorange",
+  "Cooking Banana" = "purple",
+  "Cotton" = "pink",
+  "Maize" = "cyan",
+  "Millet" = "gold",
+  "Pearl Millet" = "magenta",
+  "Pineapple" = "black",
+  "Potato" = "darkred",
+  "Rice" = "yellow",
+  "Sorghum" = "navy",
+  "Sugercane" = "coral",
+  "Sunflower" = "mediumvioletred",
+  "Sweet Banana" = "dodgerblue",
+  "Sweet Potato" = "deeppink",
+  "Wheat" = "green",
+  "Yam" = "turquoise"
 )
 
-# Ensure we have enough colors for all unique crops
-num_crops <- length(unique(filtered_data$Crop_Label))
-if (num_crops > length(my_colors)) {
-  warning("Not enough unique colors for all crops! Consider adding more colors.")
-}
-
-# Assign colors dynamically
-crop_colors <- setNames(my_colors[1:num_crops], unique(filtered_data$Crop_Label))
-
-# Load Africa map
+# Load map data for Africa
 africa <- ne_countries(scale = "medium", continent = "Africa", returnclass = "sf")
 
 # Create the map
 ggplot() +
   geom_sf(data = africa, fill = "gray95", color = "gray80") +  # Base map
-  geom_sf(data = filtered_data_sf, aes(color = Crop_Label), size = 2, alpha = 0.8) +  # Crop points
+  geom_sf(data = filtered_data_sf, aes(color = Crop), size = 2, alpha = 0.8) +  # Crop points
   scale_color_manual(values = crop_colors) +
   labs(
     title = "Study Locations by Crop",
-    color = "Crop (Study Count)"
+    color = "Crop"
   ) +
   theme_minimal() +
   theme(
     legend.position = "bottom",
-    legend.title = element_text(size = 12),
-    legend.text = element_text(size = 10),
     plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
-    
-    # Adjust legend spacing
-    legend.key.width = unit(1.5, "cm"),  # Increase width of legend items
-    legend.spacing.x = unit(0.8, "cm")  # Increase horizontal spacing between legend items
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)
   )
+
+# Display the table using knitr::kable
+kable(crop_study_counts, caption = "Number of papers per crop")
 ```
+
 ```{r box plots of different legumes, echo=T, message=FALSE, eval=FALSE}
 # Filter data for specific crops
 filtered_data <- dataset %>%
