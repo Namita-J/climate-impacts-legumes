@@ -32,7 +32,7 @@ knitr::opts_chunk$set(
 
 pacman::p_load(
    knitr, readxl, httr, leaflet, dplyr, shiny, ggplot2, tidyr, sf, rnaturalearth,
-   rnaturalearthdata, RColorBrewer
+   rnaturalearthdata, RColorBrewer, ggridges
 )
 ```
 
@@ -70,10 +70,10 @@ dataset <- readxl::read_excel(data_local, sheet = "Dataset")
 head(dataset)
 ```
 
-
 ```{r distribution of papers in Africa Static, echo=T, message=FALSE}
 excluded_crops <- c("Common bean", "Groundnut", "Cowpea", "Soybean", 
-                    "Bush Bean", "Climbing Bean", "Faba Bean", "Green grams", "Chickpea")
+                    "Bush Bean", "Climbing Bean", "Faba Bean", "Green grams", "Chickpea","Common Bean",
+                    "Bambara")
 
 # Filter dataset to exclude selected crops
 filtered_data <- dataset %>%
@@ -141,15 +141,20 @@ ggplot() +
     legend.text = element_text(size = 10)
   )
 
+# Sort the data from highest to lowest and keep only the top 5
+top_crops <- crop_study_counts %>%
+  arrange(desc(Study_Count)) %>%
+  head(5)
+
 # Display the table using knitr::kable
-kable(crop_study_counts, caption = "Number of papers per crop")
+kable(top_crops, caption = "Top 5 crops with the most papers")
 ```
 
-```{r box plots of different legumes, echo=T, message=FALSE, eval=FALSE}
-# Filter data for specific crops
+```{r box plots of different CROPS, echo=T, message=FALSE}
+# Filter dataset to exclude unwanted crops
 filtered_data <- dataset %>%
-  filter(Crop %in% selected_crops) %>%
-  filter(!is.na(`Climate impacts (%)`))  # Ensure 'Climate impacts (%)' is not NA
+  filter(!Crop %in% excluded_crops) %>%   # Exclude unwanted crops
+  filter(!is.na(`Climate impacts (%)`))   # Ensure 'Climate impacts (%)' is not NA
 
 # Count observations for each crop
 filtered_data <- filtered_data %>%
@@ -172,4 +177,234 @@ ggplot(filtered_data, aes(x = `Climate impacts (%)`, y = reorder(Crop, Count, .d
     axis.title.x = element_text(size = 12),
     axis.text.y = element_text(size = 10)
   )
+```
+
+```{r box plots of different climate scenarios, echo=T, message=FALSE}
+# Filter data for specific crops and climate scenarios
+filtered_data <- dataset %>%
+  filter(!Crop %in% excluded_crops) %>%
+  filter(!is.na(`Climate impacts (%)`)) %>%  # Ensure 'Climate impacts (%)' is not NA
+  filter(`Climate scenario` %in% c("RCP8.5", "RCP4.5", "RCP2.6", "SSP370", "SSP126", "SSP585"))  # Include only specified scenarios
+
+# Count observations for each climate scenario
+filtered_data <- filtered_data %>%
+  group_by(`Climate scenario`) %>%
+  mutate(Count = n()) %>%
+  ungroup()
+
+# Create the boxplot
+ggplot(filtered_data, aes(x = `Climate impacts (%)`, y = reorder(`Climate scenario`, Count, .desc = TRUE))) +
+  geom_boxplot(outlier.size = 1, outlier.color = "red") +
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed") +
+  labs(
+    x = "Climate Impact (%)",
+    y = "Climate Scenario",
+    title = "Climate Impact (%) on yield for different Climate Scenarios"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.title.y = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    axis.text.y = element_text(size = 10)
+  )
+
+
+```
+
+```{r box plots of different strategies, echo=T, message=FALSE}
+# Filter data for specific crops
+filtered_data <- dataset %>%
+  filter(!Crop %in% excluded_crops) %>%
+  filter(!`Adaptation type` %in% "Yield Potential") %>%
+  filter(!is.na(`Climate impacts (%)`))  # Ensure 'Climate impacts (%)' is not NA
+
+# Count observations for each crop
+filtered_data <- filtered_data %>%
+  group_by(`Adaptation type`) %>%
+  mutate(Count = n()) %>%
+  ungroup()
+
+# Create the boxplot
+ggplot(filtered_data, aes(x = `Climate impacts (%)`, y = reorder(`Adaptation type`, Count, .desc = TRUE))) +
+  geom_boxplot(outlier.size = 1, outlier.color = "red") +
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed") +
+  labs(
+    x = "Climate Impact (%)",
+    y = "Adaptation type",
+    title = "Climate Impact (%) on yield with different adaptation strategies"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.title.y = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    axis.text.y = element_text(size = 10)
+  )
+```
+
+The treatment vs. control approach greatly reduces the number of studies included (7), as most focus on a single adaptation strategy rather than projecting both scenarios. This script filters the dataset for selected crops, separating "no adaptation" (control) and specific adaptation strategies (treatment). The two groups are merged based on shared attributes like site, crop, and climate scenario, allowing for direct comparisons.
+
+```{r trt vs control, echo=T, message=FALSE}
+
+# Filter dataset to exclude unwanted crops
+filtered_data <- dataset %>%
+  filter(!Crop %in% excluded_crops) %>%
+  filter(!`Adaptation type` %in% "Yield Potential")
+
+# Create control dataset
+control_data <- filtered_data %>%
+  filter(`Adaptation type` == "No") %>%
+  rename(YieldChange_Control = `Climate impacts (%)`)
+
+# Create treatment dataset
+treatment_data <- filtered_data %>%
+  filter(`Adaptation type` != "No") %>%
+  rename(YieldChange_Treatment = `Climate impacts (%)`)
+
+# Merge control and treatment datasets
+merged_data <- merge(
+  control_data,
+  treatment_data,
+  by = c("Ref No", "Future_Mid-point", "Climate scenario",  
+         "Site(location)", "Crop","GCM/RCM","Crop Model"),
+  all = FALSE
+)
+
+# Transform the data for ridge plots
+plot_data <- merged_data %>%
+  pivot_longer(
+    cols = c(YieldChange_Control, YieldChange_Treatment),
+    names_to = "Management_Type",
+    values_to = "YieldChange"
+  ) %>%
+  mutate(
+    Management_Group = case_when(
+      Management_Type == "YieldChange_Control" ~ "No Adaptation",
+      TRUE ~ `Adaptation type.y`
+    )
+  )
+
+# Define **brighter & clearer** color palette
+crop_colors <- c(
+  "Maize" = "#377EB8",
+  "Millet" = "#4DAF4A",
+  "Rice" = "#FF7F00",
+  "Sorghum" = "#984EA3",
+  "Sunflower" = "#FFFF33",
+  "Wheat" = "#E41A1C"
+)
+
+
+
+# Improved Ridge Plot without Dots & with Tick Marks
+ggplot(plot_data, aes(
+  x = YieldChange,
+  y = reorder(Management_Group, YieldChange, median),
+  fill = Crop
+)) +
+  geom_density_ridges(
+    scale = 1.5, alpha = 0.7, rel_min_height = 0.01,
+    quantile_lines = TRUE, quantiles = 2  # Add median tick marks
+  ) +
+  scale_fill_manual(values = crop_colors) +  # Use defined colors
+  labs(
+    title = "Yield Change Distribution by Management Strategy- Trt vs Control",
+    x = "Yield Change (%)",
+    y = "Management Strategy",
+    fill = "Crop"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 12, color = "black"),  # Improve label readability
+    axis.title.y = element_text(size = 12, face = "bold"),
+    axis.title.x = element_text(size = 12, face = "bold"),
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.position = "right",
+    legend.text = element_text(size = 12)
+  )
+
+crop_study_trt_control <- merged_data %>%
+  group_by(Crop) %>%
+  summarise(Study_Count = n_distinct(doi.x)) %>%
+  ungroup()
+
+
+# Display the table using knitr::kable
+kable(crop_study_trt_control, caption = "Number of ppaers used for this plot")
+
+```
+
+**OR A BOX PLOT TO SHOW THE SAME**
+
+```{r BOX PLOT FOR TRT VS CONTROL, echo=T, message=FALSE}
+# Filter dataset to exclude unwanted crops
+filtered_data <- dataset %>%
+  filter(!Crop %in% excluded_crops) %>%
+  filter(!`Adaptation type` %in% "Yield Potential")
+
+# Create control dataset
+control_data <- filtered_data %>%
+  filter(`Adaptation type` == "No") %>%
+  rename(YieldChange_Control = `Climate impacts (%)`)
+
+# Create treatment dataset
+treatment_data <- filtered_data %>%
+  filter(`Adaptation type` != "No") %>%
+  rename(YieldChange_Treatment = `Climate impacts (%)`)
+
+# Merge control and treatment datasets
+merged_data <- merge(
+  control_data,
+  treatment_data,
+  by = c("Ref No", "Future_Mid-point", "Climate scenario",  
+         "Site(location)", "Crop","GCM/RCM","Crop Model"),
+  all = FALSE
+)
+
+# Transform the data for box plot
+plot_data <- merged_data %>%
+  pivot_longer(
+    cols = c(YieldChange_Control, YieldChange_Treatment),
+    names_to = "Management_Type",
+    values_to = "YieldChange"
+  ) %>%
+  mutate(
+    Management_Group = case_when(
+      Management_Type == "YieldChange_Control" ~ "No Adaptation",
+      TRUE ~ `Adaptation type.y`
+    )
+  )
+
+# Define **brighter & clearer** color palette
+crop_colors <- c(
+  "Maize" = "#377EB8",
+  "Millet" = "#4DAF4A",
+  "Rice" = "#FF7F00",
+  "Sorghum" = "#984EA3",
+  "Sunflower" = "#FFFF33",
+  "Wheat" = "#E41A1C"
+)
+
+# Create **Box Plot with Crop Dots**
+ggplot(plot_data, aes(
+  x = YieldChange,
+  y = reorder(Management_Group, YieldChange, median),
+  fill = Management_Group
+)) +
+  geom_boxplot(
+    alpha = 0.5, outlier.shape = 16, outlier.size = 1.5, 
+    aes(fill = NULL), width = 0.6  # Light transparency, smaller width
+  ) +
+  labs(
+    title = "Yield Change Distribution by Management Strategy -trt vs control",
+    x = "Yield Change (%)",
+    y = "Management Strategy"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 12, color = "black"),  
+    axis.title.y = element_text(size = 12, face = "bold"),
+    axis.title.x = element_text(size = 12, face = "bold"),
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.position = "none"  # Completely remove the legend
+  ) 
 ```
