@@ -32,7 +32,7 @@ knitr::opts_chunk$set(
 
 pacman::p_load(
    knitr, readxl, httr, leaflet, dplyr, shiny, ggplot2, tidyr, sf, rnaturalearth,
-   rnaturalearthdata
+   rnaturalearthdata, RColorBrewer
 )
 ```
 
@@ -70,3 +70,109 @@ dataset <- readxl::read_excel(data_local, sheet = "Dataset")
 head(dataset)
 ```
 
+
+```{r distribution of papers in Africa Static, echo=T, message=FALSE}
+# Define specific crops to exclude
+excluded_crops <- c("Common bean", "Groundnut", "Cowpea", "Soybean", "Common Bean", 
+                    "Bush Bean", "Climbing Bean", "Faba Bean", "Green grams", "Chickpea")
+
+# Filter the dataset to exclude the specified crops
+filtered_data <- dataset %>%
+  filter(!Crop %in% excluded_crops) %>%  # Exclude selected crops
+  mutate(
+    longitude = as.numeric(longitude),
+    latitude = as.numeric(latitude)
+  ) %>%
+  filter(!is.na(longitude) & !is.na(latitude))  # Ensure valid coordinates
+
+# Convert to spatial data for mapping
+filtered_data_sf <- st_as_sf(
+  filtered_data,
+  coords = c("longitude", "latitude"),
+  crs = 4326
+)
+
+# Define custom color palette with valid color names
+my_colors <- c("red", "blue", "green", "yellow", "purple", "orange", "pink", "brown",
+               "black", "cyan", "magenta", "gray", "navy", "limegreen", "gold", "violet",
+               "skyblue", "maroon", "darkolivegreen", "coral")
+
+# Count unique DOIs for each crop
+crop_study_counts <- filtered_data %>%
+  group_by(Crop) %>%
+  summarise(Study_Count = n_distinct(doi)) %>%
+  ungroup()
+
+# Generate crop labels with study count
+filtered_data <- filtered_data %>%
+  left_join(crop_study_counts, by = "Crop") %>%
+  mutate(Crop_Label = paste0(Crop, " (", Study_Count, ")")) # Format as "Crop (Count)"
+
+# Convert to spatial data for mapping
+filtered_data_sf <- st_as_sf(
+  filtered_data,
+  coords = c("longitude", "latitude"),
+  crs = 4326
+)
+
+# Ensure we have enough colors for all unique crops
+num_crops <- length(unique(filtered_data$Crop_Label))
+if (num_crops > length(my_colors)) {
+  warning("Not enough unique colors for all crops! Consider adding more colors.")
+}
+
+# Assign colors dynamically
+crop_colors <- setNames(my_colors[1:num_crops], unique(filtered_data$Crop_Label))
+
+# Load Africa map
+africa <- ne_countries(scale = "medium", continent = "Africa", returnclass = "sf")
+
+# Create the map
+ggplot() +
+  geom_sf(data = africa, fill = "gray95", color = "gray80") +  # Base map
+  geom_sf(data = filtered_data_sf, aes(color = Crop_Label), size = 2, alpha = 0.8) +  # Crop points
+  scale_color_manual(values = crop_colors) +
+  labs(
+    title = "Study Locations by Crop",
+    color = "Crop (Study Count)"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10),
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+    
+    # Adjust legend spacing
+    legend.key.width = unit(1.5, "cm"),  # Increase width of legend items
+    legend.spacing.x = unit(0.8, "cm")  # Increase horizontal spacing between legend items
+  )
+```
+```{r box plots of different legumes, echo=T, message=FALSE, eval=FALSE}
+# Filter data for specific crops
+filtered_data <- dataset %>%
+  filter(Crop %in% selected_crops) %>%
+  filter(!is.na(`Climate impacts (%)`))  # Ensure 'Climate impacts (%)' is not NA
+
+# Count observations for each crop
+filtered_data <- filtered_data %>%
+  group_by(Crop) %>%
+  mutate(Count = n()) %>%
+  ungroup()
+
+# Create the boxplot
+ggplot(filtered_data, aes(x = `Climate impacts (%)`, y = reorder(Crop, Count, .desc = TRUE))) +
+  geom_boxplot(outlier.size = 1, outlier.color = "red") +
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed") +
+  labs(
+    x = "Climate Impact (%)",
+    y = "Crop (n)",
+    title = "Climate Impact (%) on yield of Selected Crops"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.title.y = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    axis.text.y = element_text(size = 10)
+  )
+```
