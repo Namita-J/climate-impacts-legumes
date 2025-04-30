@@ -46,7 +46,8 @@ if(!dir.exists(dl_dir)){
 }
 
 # Define the URL and local path for your file
-data_url <- "https://raw.githubusercontent.com/Namita-J/climate-impacts-legumes/main/Yield%20Predictions/yield_predictions_data.xlsx"
+data_url <- "https://raw.githubusercontent.com/Namita-J/climate-impacts-legumes/main/yield_predictions_data.xlsx"
+
 data_local <- file.path(getwd(), dl_dir, "yield_predictions_data.xlsx")
 
 # Set whether to overwrite the file if it already exists
