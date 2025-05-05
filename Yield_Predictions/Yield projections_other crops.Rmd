@@ -270,7 +270,171 @@ merged_data <- merge(
   all = FALSE
 )
 
-# Transform the data for ridge plots
+# Focus on maize first (can loop over other crops later)
+maize_data <- merged_data %>%
+  filter(Crop == "Maize")  # or whatever the crop label is
+
+summary_table <- maize_data %>%
+  group_by(`Adaptation type.y`, `Climate scenario`) %>%
+  summarise(
+    Mean_Treatment = mean(YieldChange_Treatment, na.rm = TRUE),
+    Min_Treatment = min(YieldChange_Treatment, na.rm = TRUE),
+    Max_Treatment = max(YieldChange_Treatment, na.rm = TRUE),
+    SD_Treatment = sd(YieldChange_Treatment, na.rm = TRUE),
+    
+    Mean_Control = mean(YieldChange_Control, na.rm = TRUE),
+    Min_Control = min(YieldChange_Control, na.rm = TRUE),
+    Max_Control = max(YieldChange_Control, na.rm = TRUE),
+    SD_Control = sd(YieldChange_Control, na.rm = TRUE),
+    
+    N_Comparisons = n(),
+    Unique_DOIs = n_distinct(`Ref No`),
+    DOI_List = paste(unique(`Ref No`), collapse = ", ")
+  ) %>%
+  filter(`Climate scenario` %in% c("RCP4.5", "RCP8.5")) %>%
+  arrange(`Adaptation type.y`, `Climate scenario`)
+
+# Filter for Maize and RCP4.5 / RCP8.5
+maize_data <- merged_data %>%
+  filter(Crop == "Maize", `Climate scenario` %in% c("RCP4.5", "RCP8.5"))
+
+# Pivot to long format
+long_data <- maize_data %>%
+  select(`Ref No`, `Adaptation type.y`, `Climate scenario`,
+         YieldChange_Treatment, YieldChange_Control) %>%
+  pivot_longer(cols = c(YieldChange_Treatment, YieldChange_Control),
+               names_to = "Group", values_to = "YieldChange") %>%
+  mutate(Group = ifelse(Group == "YieldChange_Treatment", "Adaptation", "No adaptation"),
+         Strategy = paste(`Adaptation type.y`, "vs No adaptation"))
+
+# Calculate unique DOI counts per strategy + climate scenario
+doi_counts_strategy <- long_data %>%
+  group_by(Strategy, `Climate scenario`) %>%
+  summarise(n_doi = n_distinct(`Ref No`), .groups = "drop")
+
+# Keep only strategies with ≥3 DOIs
+strategies_to_keep <- doi_counts_strategy %>%
+  filter(n_doi >= 3) %>%
+  select(Strategy, `Climate scenario`)
+
+# Filter long_data
+long_data_filtered <- long_data %>%
+  semi_join(strategies_to_keep, by = c("Strategy", "Climate scenario"))
+
+# Recalculate total unique DOIs per climate scenario for facet labels
+facet_doi_counts <- long_data_filtered %>%
+  group_by(`Climate scenario`) %>%
+  summarise(n_doi = n_distinct(`Ref No`)) %>%
+  mutate(facet_label = paste0(`Climate scenario`, " (", n_doi, " DOIs)"))
+
+# Create named vector for facet labels
+facet_labels <- facet_doi_counts$facet_label
+names(facet_labels) <- facet_doi_counts$`Climate scenario`
+
+# Plot
+maize_plot <- ggplot(long_data_filtered, aes(x = YieldChange, y = Strategy, fill = Group)) +
+  geom_density_ridges(alpha = 0.7, scale = 1) +
+  facet_wrap(~`Climate scenario`, labeller = labeller(`Climate scenario` = facet_labels)) +
+  labs(
+    title = "Yield Change Distribution for Maize: Adaptation vs No Adaptation",
+    x = "Yield Change (%)",
+    y = "Adaptation Strategy"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    axis.text.y = element_text(size = 10)
+  )
+# Print the plot
+maize_plot
+
+###############################################################################
+# Focus on maize first (can loop over other crops later)
+wheat_data <- merged_data %>%
+  filter(Crop == "Wheat")  # or whatever the crop label is
+
+summary_table_wheat <- wheat_data %>%
+  group_by(`Adaptation type.y`, `Climate scenario`) %>%
+  summarise(
+    Mean_Treatment = mean(YieldChange_Treatment, na.rm = TRUE),
+    Min_Treatment = min(YieldChange_Treatment, na.rm = TRUE),
+    Max_Treatment = max(YieldChange_Treatment, na.rm = TRUE),
+    SD_Treatment = sd(YieldChange_Treatment, na.rm = TRUE),
+    
+    Mean_Control = mean(YieldChange_Control, na.rm = TRUE),
+    Min_Control = min(YieldChange_Control, na.rm = TRUE),
+    Max_Control = max(YieldChange_Control, na.rm = TRUE),
+    SD_Control = sd(YieldChange_Control, na.rm = TRUE),
+    
+    N_Comparisons = n(),
+    Unique_DOIs = n_distinct(`Ref No`),
+    DOI_List = paste(unique(`Ref No`), collapse = ", ")
+  ) %>%
+  filter(`Climate scenario` %in% c("RCP4.5", "RCP8.5")) %>%
+  arrange(`Adaptation type.y`, `Climate scenario`)
+
+# View summary table
+print(summary_table_wheat)
+
+# Filter for wheat and RCP4.5 / RCP8.5
+Wheat_data <- merged_data %>%
+  filter(Crop == "wheat", `Climate scenario` %in% c("RCP4.5", "RCP8.5"))
+
+# Pivot to long format
+long_data <- wheat_data %>%
+  select(`Ref No`, `Adaptation type.y`, `Climate scenario`,
+         YieldChange_Treatment, YieldChange_Control) %>%
+  pivot_longer(cols = c(YieldChange_Treatment, YieldChange_Control),
+               names_to = "Group", values_to = "YieldChange") %>%
+  mutate(Group = ifelse(Group == "YieldChange_Treatment", "Adaptation", "No adaptation"),
+         Strategy = paste(`Adaptation type.y`, "vs No adaptation"))
+
+# Calculate unique DOI counts per strategy + climate scenario
+doi_counts_strategy <- long_data %>%
+  group_by(Strategy, `Climate scenario`) %>%
+  summarise(n_doi = n_distinct(`Ref No`), .groups = "drop")
+
+# Keep only strategies with ≥3 DOIs
+strategies_to_keep <- doi_counts_strategy %>%
+  filter(n_doi >= 3) %>%
+  select(Strategy, `Climate scenario`)
+
+# Filter long_data
+long_data_filtered <- long_data %>%
+  semi_join(strategies_to_keep, by = c("Strategy", "Climate scenario"))
+
+# Recalculate total unique DOIs per climate scenario for facet labels
+facet_doi_counts <- long_data_filtered %>%
+  group_by(`Climate scenario`) %>%
+  summarise(n_doi = n_distinct(`Ref No`)) %>%
+  mutate(facet_label = paste0(`Climate scenario`, " (", n_doi, " DOIs)"))
+
+# Create named vector for facet labels
+facet_labels <- facet_doi_counts$facet_label
+names(facet_labels) <- facet_doi_counts$`Climate scenario`
+
+# Plot
+wheat_plot <- ggplot(long_data_filtered, aes(x = YieldChange, y = Strategy, fill = Group)) +
+  geom_density_ridges(alpha = 0.7, scale = 1) +
+  facet_wrap(~`Climate scenario`, labeller = labeller(`Climate scenario` = facet_labels)) +
+  labs(
+    title = "Yield Change Distribution for wheat: Adaptation vs No Adaptation",
+    x = "Yield Change (%)",
+    y = "Adaptation Strategy"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    axis.text.y = element_text(size = 10)
+  )
+
+# Print the plot
+print(wheat_plot)
+```
+
+
+``` {r trt vs control plotting all crops, echo=T, message=FALSE}
+# Transform the data for ridge plots all crops together
 plot_data <- merged_data %>%
   pivot_longer(
     cols = c(YieldChange_Control, YieldChange_Treatment),
