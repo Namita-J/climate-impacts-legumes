@@ -32,7 +32,7 @@ knitr::opts_chunk$set(
 
 pacman::p_load(
    knitr, readxl, httr, leaflet, dplyr, shiny, ggplot2, tidyr, sf, rnaturalearth,
-   rnaturalearthdata
+   rnaturalearthdata, metfor, broom, broom.mix, lme4
 )
 ```
 
@@ -46,7 +46,8 @@ if(!dir.exists(dl_dir)){
 }
 
 # Define the URL and local path for your file
-data_url <- "https://raw.githubusercontent.com/Namita-J/climate-impacts-legumes/main/Yield%20Predictions/yield_predictions_data.xlsx"
+data_url <- "https://github.com/Namita-J/climate-impacts-legumes/raw/main/Yield_Predictions/yield_predictions_data.xlsx"
+
 data_local <- file.path(getwd(), dl_dir, "yield_predictions_data.xlsx")
 
 # Set whether to overwrite the file if it already exists
@@ -913,3 +914,215 @@ Screening OpenAlex references may give us a few more papers to add
 ## Can we visualize the data in such a way:
 
 ## ![](images/crop models for risk assessment____.jpg)
+
+```{r matafor package,echo=T, message=FALSE}
+df <- dataset
+
+# --- Clean and filter for legume crops only ---
+legume_keywords <- c("bean", "pea", "lentil", "chickpea", "cowpea", "pigeonpea", "soy", "soybean", "groundnut", "gram", "legume")
+
+df <- df %>%
+  mutate(
+    Crop_lower = tolower(Crop),
+    is_legume = sapply(Crop_lower, function(x) any(grepl(paste(legume_keywords, collapse = "|"), x)))
+  ) %>%
+  filter(is_legume)
+
+# --- Keep necessary columns ---
+df_meta <- df %>%
+  select(Study = Reference,
+         Crop,
+         Scenario = `Climate scenario`,
+         Year = `Future_Mid-point`,
+         Site = `Site(location)`,
+         Model = `GCM/RCM`,
+         CropModel = `Crop Model`,
+         yi = `Climate impacts (%)`) %>%
+  filter(!is.na(yi), !is.na(Crop), !is.na(Scenario))
+
+# --- UNWEIGHTED META-ANALYSIS ---
+# Basic pooled estimate (mean)
+pooled_mean <- mean(df_meta$yi)
+pooled_sd <- sd(df_meta$yi)
+n <- nrow(df_meta)
+tau2 <- var(df_meta$yi)
+se_pooled <- sqrt(tau2 / n)
+ci_lower <- pooled_mean + qnorm(0.025) * se_pooled
+ci_upper <- pooled_mean + qnorm(0.975) * se_pooled
+
+cat("Pooled Estimate (Unweighted):", round(pooled_mean, 2), "%\n")
+cat("95% CI: [", round(ci_lower, 2), ",", round(ci_upper, 2), "]\n")
+cat("Between-study Variance (tau²):", round(tau2, 2), "\n\n")
+
+# --- MODERATOR ANALYSIS (OLS) ---
+model <- lm(yi ~ Crop + Scenario, data = df_meta)
+summary(model)
+
+# --- OPTIONAL: Forest plot of top 50 extreme values ---
+top_50 <- df_meta %>%
+  slice_max(order_by = abs(yi), n = 50) %>%
+  mutate(label = paste0(Study, " (", Crop, ")"))
+
+forest_plot<-ggplot(top_50, aes(x = yi, y = reorder(label, yi))) +
+  geom_point(color = "steelblue") +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  geom_vline(xintercept = pooled_mean, color = "red") +
+  labs(
+    title = "Top 50 Most Extreme Projected Yield Changes (Legumes)",
+    x = "Projected Yield Change (%)",
+    y = "Study (Crop)"
+  ) +
+  theme_minimal()
+
+forest_plot
+```
+
+```{r convert to proteing factors,echo=T, message=FALSE}
+# --- Define protein content per crop ---
+protein_lookup <- data.frame(
+  Crop = c("Soybean", "Chickpea", "Common Bean", "Cowpea", "Groundnut", 
+           "Lentil", "Faba Bean", "Pigeonpea", "Green gram"),
+  Protein_Content = c(0.36, 0.21, 0.23, 0.24, 0.25, 0.26, 0.27, 0.22, 0.24)
+)
+
+# --- Identify legumes, join protein factors ---
+legume_keywords <- c("bean", "pea", "lentil", "chickpea", "cowpea", "pigeonpea", "soy", "soybean", "groundnut", "gram", "legume")
+
+df_protein <- dataset %>%
+  mutate(
+    Crop_lower = tolower(Crop),
+    is_legume = sapply(Crop_lower, function(x) any(grepl(paste(legume_keywords, collapse = "|"), x)))
+  ) %>%
+  filter(is_legume, !is.na(`Climate impacts (%)`), !is.na(Crop), !is.na(`Climate scenario`)) %>%
+  rename(yi = `Climate impacts (%)`,
+         Scenario = `Climate scenario`,
+         Study = Reference) %>%
+  left_join(protein_lookup, by = "Crop") %>%
+  filter(!is.na(Protein_Content)) %>%
+  mutate(Protein_Yield_Change = yi * Protein_Content)
+
+# --- Recode AdaptationType into broader groups ---
+df_protein <- df_protein %>%
+  filter(!is.na(`Adaptation type`)) %>%
+  rename(AdaptationType = `Adaptation type`) %>%
+  mutate(Adaptation_Group = case_when(
+    grepl("Combined", AdaptationType, ignore.case = TRUE) ~ "Combined",
+    grepl("Cultivar", AdaptationType, ignore.case = TRUE) ~ "Cultivar",
+    grepl("Fertilizer", AdaptationType, ignore.case = TRUE) ~ "Fertilizer",
+    grepl("Irrigation", AdaptationType, ignore.case = TRUE) ~ "Irrigation",
+    grepl("Planting", AdaptationType, ignore.case = TRUE) ~ "Planting date",
+    AdaptationType == "No" ~ "No adaptation",
+    TRUE ~ "Other"
+  ))
+
+# --- Set as factor and relevel reference ---
+df_protein$Adaptation_Group <- factor(df_protein$Adaptation_Group)
+df_protein$Adaptation_Group <- relevel(df_protein$Adaptation_Group, ref = "No adaptation")
+
+# --- Fit model using grouped adaptation types ---
+model_adapt_grouped <- lm(Protein_Yield_Change ~ Adaptation_Group, data = df_protein)
+summary(model_adapt_grouped)
+
+# --- Create plot from model output ---
+library(broom)
+library(ggplot2)
+
+effects <- tidy(model_adapt_grouped) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(
+    Adaptation_Type = gsub("Adaptation_Group", "", term),
+    Significance = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01 ~ "**",
+      p.value < 0.05 ~ "*",
+      TRUE ~ ""
+    ),
+    Label = paste0(sprintf("%.2f", estimate), " ", Significance),
+    Color = case_when(
+      p.value >= 0.05 ~ "gray",
+      estimate > 0 ~ "forestgreen",
+      TRUE ~ "firebrick"
+    )
+  )
+
+adapt_effects <- ggplot(effects, aes(x = estimate, y = reorder(Adaptation_Type, estimate), fill = Color)) +
+  geom_bar(stat = "identity", width = 0.6) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
+  geom_text(aes(label = Label, hjust = ifelse(estimate > 0, -0.1, 1.1)),
+            size = 4, color = "black", fontface = "bold") +
+  scale_fill_identity() +
+  labs(
+    title = "Effect of Adaptation Type on Protein-Adjusted Yield Change",
+    x = "Estimated % Change in Protein Yield (vs No Adaptation)",
+    y = NULL
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    axis.text.y = element_text(face = "bold")
+  )
+
+adapt_effects
+```
+
+
+```{r random-effect-model-sensitivity, message=FALSE, warning=FALSE}
+
+# Load required libraries
+library(dplyr)
+library(lmerTest)    # for p-values in lmer
+library(broom.mixed) # tidy() for mixed models
+library(ggplot2)
+
+# --- Define Study as unique DOI ---
+df_protein <- df_protein %>%
+  mutate(Study = doi)
+
+# --- Ensure Adaptation_Group is a factor and relevel ---
+df_protein$Adaptation_Group <- factor(df_protein$Adaptation_Group)
+df_protein$Adaptation_Group <- relevel(df_protein$Adaptation_Group, ref = "No adaptation")
+
+# --- Fit the random effects model with Study as grouping variable ---
+model_random <- lmer(Protein_Yield_Change ~ Adaptation_Group + (1 | Study), data = df_protein)
+
+# --- Extract fixed effects with p-values ---
+effects_random <- tidy(model_random, effects = "fixed") %>%
+  filter(term != "(Intercept)") %>%
+  mutate(
+    Adaptation_Type = gsub("Adaptation_Group", "", term),
+    Significance = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01 ~ "**",
+      p.value < 0.05 ~ "*",
+      TRUE ~ ""
+    ),
+    Label = paste0(sprintf("%.2f", estimate), " ", Significance),
+    Color = case_when(
+      p.value >= 0.05 ~ "gray",
+      estimate > 0 ~ "forestgreen",
+      TRUE ~ "firebrick"
+    )
+  )
+
+# --- Plot fixed effects with significance labels ---
+plot_random <- ggplot(effects_random, aes(x = estimate, y = reorder(Adaptation_Type, estimate), fill = Color)) +
+  geom_bar(stat = "identity", width = 0.6) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
+  geom_text(aes(label = Label, hjust = ifelse(estimate > 0, -0.1, 1.1)),
+            size = 4, color = "black", fontface = "bold") +
+  scale_fill_identity() +
+  labs(
+    title = "Effect of Adaptation Type on Protein-Adjusted Yield Change",
+    x = "Estimated % Change in Protein Yield (vs No Adaptation)",
+    y = NULL
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    axis.text.y = element_text(face = "bold")
+  )
+
+# Display the plot
+plot_random
+```
+
