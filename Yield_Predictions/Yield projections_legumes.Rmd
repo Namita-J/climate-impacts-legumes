@@ -16,6 +16,9 @@ vignette: >
 comments:
   utterances:
     repo: Namita-J/climate-impacts-legumes
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ```{r}
@@ -32,7 +35,8 @@ knitr::opts_chunk$set(
 
 pacman::p_load(
    knitr, readxl, httr, leaflet, dplyr, shiny, ggplot2, tidyr, sf, rnaturalearth,
-   rnaturalearthdata, metfor, broom, broom.mix, lme4
+   rnaturalearthdata, metafor, broom, broom.mixed, lme4, grid, gridExtra, patchwork, 
+   emmeans
 )
 ```
 
@@ -73,7 +77,8 @@ head(dataset)
 
 # Introduction
 
-This vignette aims to explore the data on the projected impacts of climate change on legume crops in Africa. It will explore the following:
+This vignette aims to explore the data on the projected impacts of
+climate change on legume crops in Africa. It will explore the following:
 
 ***Literature Review*** needs work
 
@@ -97,7 +102,8 @@ This vignette aims to explore the data on the projected impacts of climate chang
 
 *4. Comparing different climate scenarios*
 
-*5. Understanding how different practices reduce the impacts of climate change*
+*5. Understanding how different practices reduce the impacts of climate
+change*
 
 *6. Treatment vs Control*
 
@@ -113,11 +119,20 @@ This vignette aims to explore the data on the projected impacts of climate chang
 
 ## Search Terms Used
 
-To conduct a comprehensive meta-analysis on the climate impacts on legumes in Africa, a systematic literature search was performed using the Web of Science (WoS) database. The search terms were designed to capture studies that explore climate change, its various drivers, and impacts on agricultural productivity, particularly focusing on legumes, within the African context. The search strategy incorporated Boolean operators, proximity operators, and specific geographical filters to ensure relevance and precision. Below are the details of the search terms used:
+To conduct a comprehensive meta-analysis on the climate impacts on
+legumes in Africa, a systematic literature search was performed using
+the Web of Science (WoS) database. The search terms were designed to
+capture studies that explore climate change, its various drivers, and
+impacts on agricultural productivity, particularly focusing on legumes,
+within the African context. The search strategy incorporated Boolean
+operators, proximity operators, and specific geographical filters to
+ensure relevance and precision. Below are the details of the search
+terms used:
 
 **Climate Change-Related Terms**
 
-The following terms were used to capture studies focused on climate change, its drivers, and related phenomena:
+The following terms were used to capture studies focused on climate
+change, its drivers, and related phenomena:
 
 -   `(climat* NEAR/2 (change* OR warming OR impact* OR variability* OR disruption OR risk* OR shock*))`
 
@@ -139,7 +154,8 @@ The following terms were used to capture studies focused on climate change, its 
 
 **Agriculture and Food Productivity Terms**
 
-To ensure relevance to agricultural productivity and legumes, the following terms were included:
+To ensure relevance to agricultural productivity and legumes, the
+following terms were included:
 
 -   `(((agriculture* OR crop* OR food*) NEAR/2 product*)`
 
@@ -159,11 +175,15 @@ The search was further refined to include studies conducted in Africa.
 
 **Logical Combination**
 
-The final search string combined all the above elements using the Boolean operator `AND`:
+The final search string combined all the above elements using the
+Boolean operator `AND`:
 
--   Climate-related terms AND Agriculture and food productivity terms AND Geographical filters.
+-   Climate-related terms AND Agriculture and food productivity terms
+    AND Geographical filters.
 
-This comprehensive search strategy was implemented to identify all relevant studies addressing climate change impacts on agricultural productivity, particularly legumes, in Africa.
+This comprehensive search strategy was implemented to identify all
+relevant studies addressing climate change impacts on agricultural
+productivity, particularly legumes, in Africa.
 
 ```{r search-terms, echo=T, message=FALSE}
 # Create a data frame to hold search terms
@@ -198,21 +218,38 @@ kable(search_terms, caption = "Search Terms for Projected of Climate Impacts on 
 
 ## Screening criteria applied
 
-This screening criteria is designed to systematically review papers focusing on crop yield impacts, applying both inclusion and exclusion criteria based on specific parameters. The framework ensures that the selected studies align with the objectives of the review.
+This screening criteria is designed to systematically review papers
+focusing on crop yield impacts, applying both inclusion and exclusion
+criteria based on specific parameters. The framework ensures that the
+selected studies align with the objectives of the review.
 
-*Population (P):* The review includes studies focusing on legume crops grown in African countries. The geographic scope is strictly limited to Africa. Studies involving crops other than legumes are excluded.
+*Population (P):* The review includes studies focusing on legume crops
+grown in African countries. The geographic scope is strictly limited to
+Africa. Studies involving crops other than legumes are excluded.
 
-*Intervention/Practice (I):* Eligible studies must be modeling-based and provide future yield projections. Studies incorporating adaptation strategies, such as reduced tillage or irrigation, are considered highly valuable but not mandatory for inclusion.
+*Intervention/Practice (I):* Eligible studies must be modeling-based and
+provide future yield projections. Studies incorporating adaptation
+strategies, such as reduced tillage or irrigation, are considered highly
+valuable but not mandatory for inclusion.
 
-*Comparison (C):* Studies should ideally include a control group for comparison. However, for modeling studies, this requirement is flexible and depends on the nature of the projections (e.g., baseline scenarios can serve as controls).
+*Comparison (C):* Studies should ideally include a control group for
+comparison. However, for modeling studies, this requirement is flexible
+and depends on the nature of the projections (e.g., baseline scenarios
+can serve as controls).
 
-*Outcomes (O):* The primary outcome of interest is projected yield data for legume crops. Studies reporting projections based on different scenarios (e.g., climate change impacts, adaptation strategies) are prioritized.
+*Outcomes (O):* The primary outcome of interest is projected yield data
+for legume crops. Studies reporting projections based on different
+scenarios (e.g., climate change impacts, adaptation strategies) are
+prioritized.
 
-*Study Design (S):* Only modeling studies are eligible for inclusion. Studies must explicitly include projections for future yields, either with or without adaptation strategies.
+*Study Design (S):* Only modeling studies are eligible for inclusion.
+Studies must explicitly include projections for future yields, either
+with or without adaptation strategies.
 
 ## Screening Outcomes
 
-![PRISMA Diagram for Legumes](https://raw.githubusercontent.com/Namita-J/climate-impacts-legumes/main/Yield%20Predictions/images/PRISMA%20Diagram%20legumes.png)
+![PRISMA Diagram for
+Legumes](https://raw.githubusercontent.com/Namita-J/climate-impacts-legumes/main/Yield%20Predictions/images/PRISMA%20Diagram%20legumes.png)
 
 # Data exploration
 
@@ -259,44 +296,69 @@ ggplot(publication_counts, aes(x = `Publication year`, y = Count, fill = Crop_Ty
 selected_crops <- c("Common bean", "Groundnut", "Cowpea", "Soybean", "Common Bean", 
                     "Bush Bean", "Climbing Bean", "Faba Bean", "Green grams")
 
-# Filter the dataset (replace 'dataset' with your actual dataset variable)
 filtered_data <- dataset %>%
   filter(Crop %in% selected_crops) %>%
   mutate(
     longitude = as.numeric(longitude),
     latitude = as.numeric(latitude)
   ) %>%
-  filter(!is.na(longitude) & !is.na(latitude))  # Ensure valid coordinates
+  filter(!is.na(longitude) & !is.na(latitude))
 
-# Convert to spatial data for mapping
-filtered_data_sf <- st_as_sf(
-  filtered_data,
-  coords = c("longitude", "latitude"),
-  crs = 4326
-)
+# Count number of studies by country and crop
+crop_counts <- filtered_data %>%
+  group_by(Crop) %>%
+  summarise(N = n_distinct(Reference), .groups = "drop")
 
-# Define a color palette for crops
-crop_colors <- RColorBrewer::brewer.pal(n = length(unique(filtered_data$Crop)), "Set3")
+# Count total number of papers per country
+paper_counts <- filtered_data %>%
+  group_by(Country) %>%
+  summarise(N_Papers = n_distinct(Reference), .groups = "drop")
 
-# Load map data for Africa
-africa <- ne_countries(scale = "medium", continent = "Africa", returnclass = "sf")
+# Convert to spatial format
+filtered_sf <- st_as_sf(filtered_data, coords = c("longitude", "latitude"), crs = 4326)
 
-# Create the map
-ggplot() +
-  geom_sf(data = africa, fill = "gray95", color = "gray80") +  # Base map
-  geom_sf(data = filtered_data_sf, aes(color = Crop), size = 2, alpha = 0.8) +  # Crop points
-  scale_color_manual(values = crop_colors) +
-  labs(
-    title = "Study Locations by Crop",
-    color = "Crop"
-  ) +
+# Get Africa basemap
+world <- ne_countries(scale = "medium", continent = "Africa", returnclass = "sf") %>%
+  mutate(admin = if_else(admin == "United Republic of Tanzania", "Tanzania", admin))
+
+world <- st_transform(world, crs = 4326)
+
+# Join country-level paper counts to map
+map_data <- world %>%
+  select(admin, geometry) %>%
+  rename(Country = admin) %>%
+  left_join(paper_counts, by = "Country")
+
+# ---- Create map ----
+map <- ggplot() +
+  geom_sf(data = map_data, aes(fill = N_Papers), color = "white") +
+  geom_point(data = filtered_data, aes(x = longitude, y = latitude),
+             shape = 21, color = "black", fill = "white", size = 2, alpha = 0.5) +
+  scale_fill_viridis_c(option = "mako", direction = -1, na.value = "gray95") +
+  labs(fill = "Crop Papers") +
   theme_minimal() +
   theme(
     legend.position = "bottom",
-    plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
-    legend.title = element_text(size = 12),
-    legend.text = element_text(size = 10)
-  )
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title = element_blank(),
+    panel.grid = element_blank()
+  ) +
+  guides(fill = guide_colorbar(barwidth = 10, barheight = 0.5, title.position = "top", title.hjust = 0.5)) +
+  coord_sf(xlim = c(-20, 52), ylim = c(-35, 50), expand = FALSE)
+
+# ---- Create static crop count table ----
+crop_table <- crop_counts %>%
+  arrange(desc(N)) %>%
+  head(20)  # adjust number of rows shown
+
+table_grob <- tableGrob(crop_table)
+
+# ---- Combine map and table side by side ----
+grid.arrange(map, table_grob, ncol = 2, widths = c(2, 1))
 ```
 
 ```{r distribution of papers in Africa interactive, eval=F, echo=T, message=FALSE}
@@ -370,11 +432,24 @@ shinyApp(ui = ui, server = server)
 
 ## Comparisons between different legumes
 
-This script analyzes the impact of climate on the yield of selected legumes by filtering the dataset to include specific crops with available data on climate impacts, ensuring no missing values in the Climate impacts (%) column. The data is grouped by crop, and the number of observations for each crop is calculated to provide context for the analysis.
+This script analyzes the impact of climate on the yield of selected
+legumes by filtering the dataset to include specific crops with
+available data on climate impacts, ensuring no missing values in the
+Climate impacts (%) column. The data is grouped by crop, and the number
+of observations for each crop is calculated to provide context for the
+analysis.
 
-The plot reveals the distribution of climate impacts across different crops, highlighting trends in the data.Some crops, such as Common Bean and Groundnut, exhibit a wider range of climate impacts, with both positive and negative extremes. In contrast, crops like Green Grams show relatively limited variability, suggesting more consistent responses to climate factors. However, this is also attributed the number of papers done for each of these crops.
+The plot reveals the distribution of climate impacts across different
+crops, highlighting trends in the data.Some crops, such as Common Bean
+and Groundnut, exhibit a wider range of climate impacts, with both
+positive and negative extremes. In contrast, crops like Green Grams show
+relatively limited variability, suggesting more consistent responses to
+climate factors. However, this is also attributed the number of papers
+done for each of these crops.
 
-Additionally, certain crops, such as Cowpea and Soybean, display clusters of outliers, indicating occasional extreme climate impacts that deviate from the general trend.
+Additionally, certain crops, such as Cowpea and Soybean, display
+clusters of outliers, indicating occasional extreme climate impacts that
+deviate from the general trend.
 
 ```{r box plots of different legumes, echo=T, message=FALSE}
 # Filter data for specific crops
@@ -407,11 +482,27 @@ ggplot(filtered_data, aes(x = `Climate impacts (%)`, y = reorder(Crop, Count, .d
 
 ## Comparing different climate scenarios
 
-This analysis explores how different climate scenarios impact crop yields, combining insights from both CMIP5 (RCP scenarios) and CMIP6 (SSP scenarios). The dataset focuses on selected crops and scenarios where reliable data on Climate impacts (%) is available, allowing for a meaningful comparison. By including both RCPs and SSPs, the analysis bridges older and newer climate modeling frameworks, recognizing the ongoing relevance of CMIP5 data in climate research and its ability to provide valuable insights alongside the more recent CMIP6 projections.
+This analysis explores how different climate scenarios impact crop
+yields, combining insights from both CMIP5 (RCP scenarios) and CMIP6
+(SSP scenarios). The dataset focuses on selected crops and scenarios
+where reliable data on Climate impacts (%) is available, allowing for a
+meaningful comparison. By including both RCPs and SSPs, the analysis
+bridges older and newer climate modeling frameworks, recognizing the
+ongoing relevance of CMIP5 data in climate research and its ability to
+provide valuable insights alongside the more recent CMIP6 projections.
 
-The plot reveals some clear trends. Under high-emission scenarios like RCP8.5 and SSP585, the variability in climate impacts is much wider, with a notable number of positive impacts, suggesting that certain crops might benefit under these extreme warming conditions. On the other hand, low-emission scenarios like SSP126 and RCP2.6 show more consistent impacts, with narrower ranges and fewer extreme values. This reflects the more moderated effects expected when strong mitigation measures are implemented.
+The plot reveals some clear trends. Under high-emission scenarios like
+RCP8.5 and SSP585, the variability in climate impacts is much wider,
+with a notable number of positive impacts, suggesting that certain crops
+might benefit under these extreme warming conditions. On the other hand,
+low-emission scenarios like SSP126 and RCP2.6 show more consistent
+impacts, with narrower ranges and fewer extreme values. This reflects
+the more moderated effects expected when strong mitigation measures are
+implemented.
 
-Despite the release of CIMP6,this study chose to retain crop yield projections done with CIMP5 and CIMP3 as they still provide valuable insights.
+Despite the release of CIMP6,this study chose to retain crop yield
+projections done with CIMP5 and CIMP3 as they still provide valuable
+insights.
 
 ```{r box plots of different climate scenarios, echo=T, message=FALSE}
 # Filter data for specific crops and climate scenarios
@@ -447,7 +538,15 @@ ggplot(filtered_data, aes(x = `Climate impacts (%)`, y = reorder(`Climate scenar
 
 ## Understanding how different practices reduce the impacts of climate change
 
-This script explores how different adaptation strategies help mitigate the effects of climate change on crop yields. The analysis focuses on selected crops with valid data on Climate impacts (%) and groups the strategies to evaluate their effectiveness. The plot reveals that approaches like using high fertilizer levels and selecting specific cultivars are particularly effective at reducing negative impacts. In contrast, strategies like late planting show greater variability and higher risks. Combined strategies stand out for their consistent results, offering solutions to enhance crop resilience.
+This script explores how different adaptation strategies help mitigate
+the effects of climate change on crop yields. The analysis focuses on
+selected crops with valid data on Climate impacts (%) and groups the
+strategies to evaluate their effectiveness. The plot reveals that
+approaches like using high fertilizer levels and selecting specific
+cultivars are particularly effective at reducing negative impacts. In
+contrast, strategies like late planting show greater variability and
+higher risks. Combined strategies stand out for their consistent
+results, offering solutions to enhance crop resilience.
 
 ```{r box plots of different strategies, echo=T, message=FALSE}
 # Filter data for specific crops
@@ -480,9 +579,20 @@ ggplot(filtered_data, aes(x = `Climate impacts (%)`, y = reorder(`Adaptation typ
 
 ## Treatment vs control
 
-The treatment vs. control approach greatly reduces the number of studies included (7), as most focus on a single adaptation strategy rather than projecting both scenarios. This script filters the dataset for selected crops, separating "no adaptation" (control) and specific adaptation strategies (treatment). The two groups are merged based on shared attributes like site, crop, and climate scenario, allowing for direct comparisons.
+The treatment vs. control approach greatly reduces the number of studies
+included (7), as most focus on a single adaptation strategy rather than
+projecting both scenarios. This script filters the dataset for selected
+crops, separating "no adaptation" (control) and specific adaptation
+strategies (treatment). The two groups are merged based on shared
+attributes like site, crop, and climate scenario, allowing for direct
+comparisons.
 
-The plot shows yield changes across management strategies, with "no adaptation" as the baseline. Strategies like combination approaches and irrigation consistently improve yields, while others, such as late planting, show mixed results. Despite limited data availability, this analysis highlights the value of directly comparing treatment and control to assess the real impact of adaptation strategies
+The plot shows yield changes across management strategies, with "no
+adaptation" as the baseline. Strategies like combination approaches and
+irrigation consistently improve yields, while others, such as late
+planting, show mixed results. Despite limited data availability, this
+analysis highlights the value of directly comparing treatment and
+control to assess the real impact of adaptation strategies
 
 ```{r trt vs control, echo=T, message=FALSE}
 
@@ -539,19 +649,28 @@ ggplot(plot_data, aes(
 
 ```
 
-# Next steps
-
 ## OpenAlex results
 
 ***OpenAlex query***
 
-This script automates the process of querying the OpenAlex API for research on climate change, agriculture, and African regions. It constructs Boolean search strings for climate, agriculture, and regional terms, combines them into a final query, and retrieves results within a specified date range (1970--2024). The results, including key details like title and DOI, are saved in a CSV file for analysis.\
+This script automates the process of querying the OpenAlex API for
+research on climate change, agriculture, and African regions. It
+constructs Boolean search strings for climate, agriculture, and regional
+terms, combines them into a final query, and retrieves results within a
+specified date range (1970--2024). The results, including key details
+like title and DOI, are saved in a CSV file for analysis.\
 \
 The result was **2492** search hits.
 
 ![](https://raw.githubusercontent.com/Namita-J/climate-impacts-legumes/main/Yield%20Predictions/OpenAlex/OpenAlex/Relevance%20scores%20of%20OpenAlex%20refs.png)
 
-The majority of references have low relevance scores, as shown by the high frequency of scores concentrated near zero. There is a rapid decline in frequency as relevance scores increase, with very few references scoring above 100. This pattern suggests that most of the retrieved works have only moderate alignment with the search criteria, while a small subset demonstrates stronger relevance to the specified terms.\
+The majority of references have low relevance scores, as shown by the
+high frequency of scores concentrated near zero. There is a rapid
+decline in frequency as relevance scores increase, with very few
+references scoring above 100. This pattern suggests that most of the
+retrieved works have only moderate alignment with the search criteria,
+while a small subset demonstrates stronger relevance to the specified
+terms.\
 \
 Unhide to see the script
 
@@ -670,9 +789,19 @@ print(nrow(test_hits_tab))  # Check how many results this yields
 
 ***OpenAlex valibation***
 
-This script compares results from two bibliographic databases, Web of Science (WoS) and OpenAlex, to assess overlap and relevance in identifying studies on climate change impacts on legumes. It begins by loading accepted and rejected WoS references, cleaning and standardizing titles and DOIs for consistent matching.
+This script compares results from two bibliographic databases, Web of
+Science (WoS) and OpenAlex, to assess overlap and relevance in
+identifying studies on climate change impacts on legumes. It begins by
+loading accepted and rejected WoS references, cleaning and standardizing
+titles and DOIs for consistent matching.
 
-OpenAlex query results are also processed similarly, ensuring compatibility. Matches are identified by comparing titles and DOIs across datasets, with duplicates removed. Matched data is analyzed to assess overlap, including creating histograms to visualize the distribution of relevance scores for accepted and rejected references. Additionally, the script includes functionality to fetch records from OpenAlex using DOIs and partial title matching.
+OpenAlex query results are also processed similarly, ensuring
+compatibility. Matches are identified by comparing titles and DOIs
+across datasets, with duplicates removed. Matched data is analyzed to
+assess overlap, including creating histograms to visualize the
+distribution of relevance scores for accepted and rejected references.
+Additionally, the script includes functionality to fetch records from
+OpenAlex using DOIs and partial title matching.
 
 ```{r openalex validation, eval=F, echo=T, message=FALSE}
 #Testing OpenAlex vs Wos
@@ -901,99 +1030,67 @@ cat("Total number of matches found:", nrow(matched_data), "\n")
 
 ![](https://raw.githubusercontent.com/Namita-J/climate-impacts-legumes/main/Yield%20Predictions/OpenAlex/OpenAlex/Relevance%20scores%20of%20rejected%20papers_merged.png)
 
-There were only 3 matches with accepted papers from WoS.
+# Meta-analysis
 
-Screening OpenAlex references may give us a few more papers to add
+1.  Meta-Analysis with the metafor Package To quantify the effects of
+    different climate adaptation strategies on projected legume yield,
+    we used the metafor package in R --- a widely adopted tool for
+    conducting meta-analyses across disciplines. The package allows for
+    the estimation of pooled effect sizes while accounting for
+    study-level variance and moderator effects, using both fixed- and
+    random-effects models. In this analysis, we applied unweighted and
+    moderator-enhanced models using rma() to assess average adaptation
+    impacts and heterogeneity across scenarios and crop types.
 
-## An analysis with other variables
+2.  Converting Yield Projections to Protein Equivalents Projected yield
+    changes were typically reported as percentage change in yield (t/ha)
+    under future climate scenarios, with and without adaptation.
+    However, different legumes vary significantly in their protein
+    content per unit weight, which has major implications for food
+    security and nutritional outcomes.
 
-## Using protein conversion factors
+To standardize comparisons across crops, we applied a protein content
+multiplier to each yield projection. For example:
 
-## Comparing different types of models. process based vs non-process based
+Protein-Adjusted Yield Change = Projected Yield Change (%) × Protein
+Content (g/g)
 
-## Can we visualize the data in such a way:
+Each legume crop is assigned a typical protein content based on
+published composition data.
 
-## ![](images/crop models for risk assessment____.jpg)
+3.  Justification for Combining Legume Crops Legume crops are not
+    nutritionally or agronomically identical, but after adjusting for
+    protein content, they can be compared on a common nutritional basis
+    which is their contribution to digestible protein per hectare. This
+    transformation removes bias introduced by crops that produce large
+    volumes but lower nutritional density (e.g., green gram vs.
+    soybean), and instead evaluates each adaptation strategy's impact on
+    protein.
 
-```{r matafor package,echo=T, message=FALSE}
-df <- dataset
+By converting to a standardized protein-equivalent metric, we are able
+to:
 
-# --- Clean and filter for legume crops only ---
-legume_keywords <- c("bean", "pea", "lentil", "chickpea", "cowpea", "pigeonpea", "soy", "soybean", "groundnut", "gram", "legume")
+-   Meaningfully pool results across diverse legume species
 
-df <- df %>%
-  mutate(
-    Crop_lower = tolower(Crop),
-    is_legume = sapply(Crop_lower, function(x) any(grepl(paste(legume_keywords, collapse = "|"), x)))
-  ) %>%
-  filter(is_legume)
+-   Detect general adaptation trends applicable across crop types
 
-# --- Keep necessary columns ---
-df_meta <- df %>%
-  select(Study = Reference,
-         Crop,
-         Scenario = `Climate scenario`,
-         Year = `Future_Mid-point`,
-         Site = `Site(location)`,
-         Model = `GCM/RCM`,
-         CropModel = `Crop Model`,
-         yi = `Climate impacts (%)`) %>%
-  filter(!is.na(yi), !is.na(Crop), !is.na(Scenario))
+-   Highlight which strategies consistently increase nutritional yield,
+    not just bulk production
 
-# --- UNWEIGHTED META-ANALYSIS ---
-# Basic pooled estimate (mean)
-pooled_mean <- mean(df_meta$yi)
-pooled_sd <- sd(df_meta$yi)
-n <- nrow(df_meta)
-tau2 <- var(df_meta$yi)
-se_pooled <- sqrt(tau2 / n)
-ci_lower <- pooled_mean + qnorm(0.025) * se_pooled
-ci_upper <- pooled_mean + qnorm(0.975) * se_pooled
-
-cat("Pooled Estimate (Unweighted):", round(pooled_mean, 2), "%\n")
-cat("95% CI: [", round(ci_lower, 2), ",", round(ci_upper, 2), "]\n")
-cat("Between-study Variance (tau²):", round(tau2, 2), "\n\n")
-
-# --- MODERATOR ANALYSIS (OLS) ---
-model <- lm(yi ~ Crop + Scenario, data = df_meta)
-summary(model)
-
-# --- OPTIONAL: Forest plot of top 50 extreme values ---
-top_50 <- df_meta %>%
-  slice_max(order_by = abs(yi), n = 50) %>%
-  mutate(label = paste0(Study, " (", Crop, ")"))
-
-forest_plot<-ggplot(top_50, aes(x = yi, y = reorder(label, yi))) +
-  geom_point(color = "steelblue") +
-  geom_vline(xintercept = 0, linetype = "dashed") +
-  geom_vline(xintercept = pooled_mean, color = "red") +
-  labs(
-    title = "Top 50 Most Extreme Projected Yield Changes (Legumes)",
-    x = "Projected Yield Change (%)",
-    y = "Study (Crop)"
-  ) +
-  theme_minimal()
-
-forest_plot
-```
-
-```{r convert to proteing factors,echo=T, message=FALSE}
-# --- Define protein content per crop ---
+```{r convert to protein factors,echo=T, message=FALSE}
+# --- Protein content lookup (only for observed legumes) ---
 protein_lookup <- data.frame(
-  Crop = c("Soybean", "Chickpea", "Common Bean", "Cowpea", "Groundnut", 
-           "Lentil", "Faba Bean", "Pigeonpea", "Green gram"),
-  Protein_Content = c(0.36, 0.21, 0.23, 0.24, 0.25, 0.26, 0.27, 0.22, 0.24)
+  Crop = c("Common Bean", "Groundnut", "Cowpea", "Soybean", 
+           "Bush Bean", "Climbing Bean", "Faba Bean", "Green grams"),
+  Protein_Content = c(0.23, 0.25, 0.24, 0.36, 0.23, 0.23, 0.27, 0.24)
 )
 
-# --- Identify legumes, join protein factors ---
-legume_keywords <- c("bean", "pea", "lentil", "chickpea", "cowpea", "pigeonpea", "soy", "soybean", "groundnut", "gram", "legume")
-
+# --- Filter and compute protein yield change ---
 df_protein <- dataset %>%
-  mutate(
-    Crop_lower = tolower(Crop),
-    is_legume = sapply(Crop_lower, function(x) any(grepl(paste(legume_keywords, collapse = "|"), x)))
-  ) %>%
-  filter(is_legume, !is.na(`Climate impacts (%)`), !is.na(Crop), !is.na(`Climate scenario`)) %>%
+  filter(Crop %in% legumes, 
+         !is.na(`Climate impacts (%)`), 
+         !is.na(Crop), 
+         !is.na(`Climate scenario`)) %>%
   rename(yi = `Climate impacts (%)`,
          Scenario = `Climate scenario`,
          Study = Reference) %>%
@@ -1015,18 +1112,17 @@ df_protein <- df_protein %>%
     TRUE ~ "Other"
   ))
 
-# --- Set as factor and relevel reference ---
+# --- Set factor level and relevel reference (if exists) ---
 df_protein$Adaptation_Group <- factor(df_protein$Adaptation_Group)
-df_protein$Adaptation_Group <- relevel(df_protein$Adaptation_Group, ref = "No adaptation")
+if ("No adaptation" %in% levels(df_protein$Adaptation_Group)) {
+  df_protein$Adaptation_Group <- relevel(df_protein$Adaptation_Group, ref = "No adaptation")
+}
+```
 
-# --- Fit model using grouped adaptation types ---
+```{r run the metafor package,echo=T, message=FALSE}
 model_adapt_grouped <- lm(Protein_Yield_Change ~ Adaptation_Group, data = df_protein)
-summary(model_adapt_grouped)
 
-# --- Create plot from model output ---
-library(broom)
-library(ggplot2)
-
+# --- Summarize and style output ---
 effects <- tidy(model_adapt_grouped) %>%
   filter(term != "(Intercept)") %>%
   mutate(
@@ -1045,27 +1141,116 @@ effects <- tidy(model_adapt_grouped) %>%
     )
   )
 
+# --- Plot ---
 adapt_effects <- ggplot(effects, aes(x = estimate, y = reorder(Adaptation_Type, estimate), fill = Color)) +
-  geom_bar(stat = "identity", width = 0.6) +
+  geom_bar(stat = "identity", width = 0.4) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
   geom_text(aes(label = Label, hjust = ifelse(estimate > 0, -0.1, 1.1)),
-            size = 4, color = "black", fontface = "bold") +
+            size = 2, color = "black", fontface = "bold") +
   scale_fill_identity() +
   labs(
     title = "Effect of Adaptation Type on Protein-Adjusted Yield Change",
     x = "Estimated % Change in Protein Yield (vs No Adaptation)",
     y = NULL
   ) +
-  theme_minimal(base_size = 13) +
+  theme_minimal(base_size = 8) +
   theme(
     plot.title = element_text(face = "bold"),
     axis.text.y = element_text(face = "bold")
   )
 
-adapt_effects
+# --- Table display next to plot ---
+table_data <- effects %>%
+  select(Adaptation_Type, estimate, p.value) %>%
+  rename(
+    `Adaptation Type` = Adaptation_Type,
+    `Estimate` = estimate,
+    `P-Value` = p.value
+  ) %>%
+  mutate(
+    Estimate = round(Estimate, 2),
+    `P-Value` = signif(`P-Value`, 2)
+  )
+
+table_grob <- tableGrob(
+  table_data,
+  rows = NULL,
+  theme = ttheme_default(
+    core = list(fg_params = list(cex = 0.75)),
+    colhead = list(fg_params = list(cex = 0.8))
+  )
+)
+table_grob$widths <- unit(rep(1/3, ncol(table_data)), "npc")
+
+# --- Display plot and table side by side ---
+adapt_effects + wrap_elements(table_grob) + 
+  plot_layout(ncol = 2, widths = c(2.5, 1.6))
 ```
+```{r run the metafor package with climate scenarios , eval= T, echo=T, message=FALSE}
+# Fit interaction model
+model_interaction <- lm(Protein_Yield_Change ~ Adaptation_Group * Scenario, data = df_protein)
+
+# --- Clean and extract coefficients ---
+interaction_effects <- tidy(model_interaction) %>%
+  filter(!is.na(p.value), term != "(Intercept)") %>%
+  mutate(
+    # Extract Adaptation Type
+    Adaptation_Type = case_when(
+      grepl("Adaptation_Group", term) ~ gsub("Adaptation_Group", "", sub(":.*", "", term)),
+      TRUE ~ NA_character_
+    ),
+    # Extract Scenario
+    Scenario = case_when(
+      grepl("Scenario", term) ~ gsub("Scenario", "", sub(".*:", "", term)),
+      TRUE ~ "Baseline"
+    ),
+    Significance = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01 ~ "**",
+      p.value < 0.05 ~ "*",
+      TRUE ~ ""
+    ),
+    Label = paste0(sprintf("%.2f", estimate), " ", Significance),
+    Color = case_when(
+      p.value >= 0.05 ~ "gray",
+      estimate > 0 ~ "forestgreen",
+      TRUE ~ "firebrick"
+    )
+  ) %>%
+  filter(!is.na(Adaptation_Type), Scenario != "Baseline")  # Remove NA and Baseline terms
 
 
+
+# Plot grouped bars by scenario
+interaction_plot <- ggplot(interaction_effects, aes(x = Adaptation_Type, y = estimate, fill = Scenario)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.6) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
+  geom_text(aes(label = Label, group = Scenario),
+            position = position_dodge(width = 0.7),
+            hjust = ifelse(interaction_effects$estimate > 0, -0.1, 1.1),
+            size = 2.5, color = "black", fontface = "bold") +
+  scale_fill_brewer(palette = "Set2") +
+  labs(
+    title = "Interaction: Adaptation Type × Climate Scenario",
+    x = "Adaptation Type",
+    y = "Estimated % Change in Protein Yield",
+    fill = "Climate Scenario"
+  ) +
+  theme_minimal(base_size = 10) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_text(face = "bold")
+  )
+
+```
+In our main analysis, we used the metafor package to run an unweighted meta-analysis. This was necessary because most studies didn’t report key variance measures like standard errors or confidence intervals, which are typically used to weight effect sizes. While metafor is well-suited for meta-analysis, it generally performs best when such variance data is available.
+
+To strengthen our findings and account for the fact that multiple data points came from the same studies, we ran a sensitivity check using a mixed-effects model with the lmerTest package. This allowed us to include Study (defined by unique DOIs) as a random effect, helping to control for variation between studies.
+
+This model tested whether the estimated effects of different adaptation types held up after adjusting for study-level clustering and it also provided p-values for the fixed effects, something that isn’t included by default in standard lme4 models.
+
+By treating Study as a random effect, this approach helped protect against overconfidence in the results and offered an added layer of robustness to support the patterns we observed in the unweighted analysis.
 ```{r random-effect-model-sensitivity, message=FALSE, warning=FALSE}
 
 # Load required libraries
@@ -1124,5 +1309,64 @@ plot_random <- ggplot(effects_random, aes(x = estimate, y = reorder(Adaptation_T
 
 # Display the plot
 plot_random
+```
+C3 crops like soybean, common bean, and groundnut use the Calvin cycle for carbon fixation, which is more sensitive to atmospheric CO2₂ levels compared to c4 crops like maize. Under elevated CO₂,c3₃ plants can photosynthesize more efficiently, leading to:
+
+Increased carbon assimilation
+
+Improved water use efficiency (due to reduced stomatal conductance)
+
+Potential gains in biomass and yield
+
+Because of this physiological responsiveness, it's especially important to assess how projected yield changes under climate scenarios differ with and without CO₂ fertilization — particularly for C₃ species. Ignoring CO₂ effects may underestimate their adaptive potential or skew comparisons with C₄ crops.
+
+
+```{r effects of co2, message=FALSE, warning=FALSE}
+
+df_co2 <- dataset %>%
+  filter(Crop %in% c("Maize", "Soybean"),
+         `Adaptation type` == "No",
+         !is.na(`Climate impacts (%)`),
+         !is.na(CO2),
+         !is.na(doi)) %>%
+  mutate(
+    CO2 = factor(CO2, levels = c("No", "Yes")),
+    Crop = factor(Crop),
+    Study = doi,
+    Yield_Change = `Climate impacts (%)`
+  )
+
+model_co2 <- lmer(Yield_Change ~ CO2 * Crop + (1 | Study), data = df_co2)
+
+# Estimate marginal means for each Crop × CO2 combo
+em_co2 <- emmeans(model_co2, ~ Crop * CO2)
+
+# Convert to dataframe for plotting
+df_em <- as.data.frame(em_co2) %>%
+  mutate(
+    Label = paste0(sprintf("%.2f", emmean)),
+    Color = case_when(
+      CO2 == "Yes" ~ "forestgreen",
+      CO2 == "No" ~ "firebrick"
+    )
+  )
+
+# Plot estimated marginal means
+ggplot(df_em, aes(x = emmean, y = interaction(Crop, CO2), fill = Color)) +
+  geom_bar(stat = "identity", width = 0.6, show.legend = FALSE) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
+  geom_text(aes(label = Label), hjust = ifelse(df_em$emmean > 0, -0.1, 1.1),
+            size = 3.5, color = "black", fontface = "bold") +
+  scale_fill_identity() +
+  labs(
+    title = "Estimated Yield Change by Crop and CO2- No adaptation",
+    x = "Estimated % Change in Yield",
+    y = NULL
+  ) +
+  theme_minimal(base_size = 8) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    axis.text.y = element_text(face = "bold")
+  )
 ```
 
