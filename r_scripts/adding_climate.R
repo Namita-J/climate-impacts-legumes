@@ -117,3 +117,98 @@ get_delta <- function(ssp = "ssp585", window = "2081-2100") {
 get_delta("ssp585", "2081-2100")   # late-century high forcing
 get_delta("ssp245", "2041-2060")   # mid-century moderate forcing
 get_delta("ssp126", "2021-2040")   # near-term low forcing
+
+
+#==============================================================================
+# Adding precipitation
+
+library(readxl)
+library(writexl)
+library(dplyr)
+library(terra)
+library(stringr)
+
+# 1 ── Load Excel and add row ID
+df <- read_excel("excel_data/yield_predictions_data_with_local_dT_filled.xlsx", sheet = "Sheet1") |>
+  mutate(row_index = row_number())
+
+# 2 ── Subset to rows missing ΔP and generate scenario keys
+df_todo <- df |>
+  filter(is.na(`Annual Precipitation change  from 2005 (mm)_cal`)) |>
+  mutate(
+    ssp = case_when(
+      `Climate scenario` %in% c("RCP2.6", "SSP126") ~ "ssp126",
+      `Climate scenario` %in% c("RCP4.5", "SSP245") ~ "ssp245",
+      `Climate scenario` %in% c("RCP6.0", "SSP370") ~ "ssp370",
+      `Climate scenario` %in% c("RCP8.5", "SSP585") ~ "ssp585",
+      `Climate scenario` %in% c("B1", "A1B1")        ~ "ssp126",
+      `Climate scenario` == "B2"                    ~ "ssp245",
+      `Climate scenario` == "A1B"                   ~ "ssp370",
+      `Climate scenario` == "A2"                    ~ "ssp585",
+      TRUE ~ NA_character_
+    ),
+    win = case_when(
+      between(`Future_Mid-point`, 2021, 2040) ~ "2021-2040",
+      between(`Future_Mid-point`, 2041, 2060) ~ "2041-2060",
+      between(`Future_Mid-point`, 2061, 2080) ~ "2061-2080",
+      between(`Future_Mid-point`, 2081, 2100) ~ "2081-2100"
+    )
+  ) |>
+  filter(!is.na(ssp), !is.na(win))
+
+df_todo$delta_P <- NA_real_
+
+# 3 ── Compute historical baseline BIO12 from 12 monthly rasters
+prec_files <- list.files("C:/Users/JNamita/OneDrive - Wageningen University & Research/PhD- Namita/Chapter 1- Yield change synthesis/worldclim_data/prec_historical", 
+                         pattern = "^wc2.1_2.5m_prec_\\d+\\.tif$", full.names = TRUE)
+monthly_stack <- rast(prec_files)
+base_r <- sum(monthly_stack)  # This is BIO12
+
+# 4 ── Loop over SSP × time window and calculate ΔP
+for (cmb in split(df_todo, list(df_todo$ssp, df_todo$win), drop = TRUE)) {
+  
+  ssp_id <- cmb$ssp[1]
+  win_id <- cmb$win[1]
+  message("▶  Processing: ", ssp_id, "  ", win_id)
+  
+  # Match files with 'prec' + ssp + window structure
+  pat <- paste0("prec_.*", ssp_id, "_", win_id, "\\.tif$")
+  f_files <- list.files(
+    "C:/Users/JNamita/OneDrive - Wageningen University & Research/PhD- Namita/Chapter 1- Yield change synthesis/worldclim_data",
+    pattern = pat,
+    full.names = TRUE
+  )
+  if (!length(f_files)) {
+    message("   ⚠  No future precip files found.")
+    next
+  }
+  
+  # Get study coordinates
+  pts <- terra::vect(cmb, geom = c("longitude", "latitude"), crs = "EPSG:4326")
+  
+  # Extract and sum all layers (monthly precip → annual)
+  fut_mat <- vapply(f_files, \(f) {
+    values <- extract(rast(f), pts)[, -1, drop = FALSE]
+    rowSums(values, na.rm = TRUE)
+  }, numeric(nrow(cmb)))
+  
+  fut_mean <- if (is.null(dim(fut_mat))) fut_mat else rowMeans(fut_mat, na.rm = TRUE)
+  
+  # Historical baseline was pre-computed in base_r
+  base_val <- extract(base_r, pts)[,2]
+  
+  # ΔP = future annual – historical annual
+  df_todo$delta_P[match(cmb$row_index, df_todo$row_index)] <- fut_mean - base_val
+}
+
+# 5 ── Insert new values into main df
+idx    <- match(df$row_index, df_todo$row_index)
+new_DP <- df_todo$delta_P[idx]
+
+df$`Annual Precipitation change  from 2005 (mm)_cal` <- ifelse(!is.na(new_DP),
+                                                              new_DP,
+                                                              df$`Annual Precipitation change  from 2005 (mm)_cal`)
+
+# 6 ── Save final file
+df <- select(df, -row_index)
+write_xlsx(df, "yield_predictions_data_with_local_dP_filled.xlsx")
