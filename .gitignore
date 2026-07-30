@@ -2,3 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# Large data files (exceed GitHub's size limits)
+Yield_Predictions/yield_predictions_data.xlsx
+excel_data/spam2020V1r2_SSA_Y_TL.csv
