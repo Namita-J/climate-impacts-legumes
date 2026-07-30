@@ -25,36 +25,6 @@ Extracts temperature and precipitation deltas (ΔT in °C; ΔP in mm and %) for 
 
 **Key packages:** `terra`, `readxl`, `writexl`, `dplyr`
 
----
-
-### `r_scripts/adding_spam.R` — Baseline yield gap-filling
-
-Fills missing baseline yield values (t/ha) using the **MapSPAM 2020** crop yield dataset for Sub-Saharan Africa (`excel_data/spam2020V1r2_SSA_Y_TL.csv`). For each study with a missing baseline, identifies the nearest MapSPAM grid cell by Haversine distance (`geosphere::distHaversine()`) and assigns that cell's yield. Only fills cells with non-zero MapSPAM values.
-
-Covers six legume crops: Common Bean, Groundnut, Soybean, Chickpea, Cowpea, Lentil.
-
-**Key packages:** `geosphere`, `readxl`, `dplyr`, `janitor`
-
----
-
-### `r_scripts/model.R` — GAMM
-
-Fits the main **Generalised Additive Mixed Model** for legume yield response (n = 469 runs, 25 studies, 18 countries).
-
-A preliminary GAM with smooths on both ΔT and ΔP confirmed that temperature response is approximately linear (edf ≈ 3.25, p = 0.052), so ΔT enters as a parametric fixed effect while ΔP is modelled as a penalised regression spline `s(precip)`. CO₂ fertilisation status and adaptation (binary: No-adaptation vs Adaptation) are binary fixed effects. Random intercepts are specified for study and country.
-
-```
-dp ~ dt + s(precip) + adaptation + co2_group + (1|study_id) + (1|country)
-```
-
-A Shapiro-Wilk test confirmed non-normality in OLS residuals (W = 0.953, p < 0.001), supporting the GAMM specification. The full model showed ΔAIC = 60.9 vs the null; conditional R² = 0.820; country-level random effects explain 53% of total variance.
-
-Also runs:
-- Sensitivity analysis on CO₂-inclusive simulations only
-- OLS comparison with clustered standard errors (HC3) and VIF diagnostics
-- Exports fixed effects, smooth terms, and random effects variance to `excel_data/gamm_supplementary_table.xlsx`
-
-**Key packages:** `mgcv`, `gamm4`, `lme4`, `broom.mixed`, `performance`, `sandwich`, `lmtest`
 
 ---
 
@@ -83,13 +53,26 @@ For the protein analysis, species-specific crude protein content and true digest
 **Key packages:** `boot`, `ggplot2`, `patchwork`, `sf`, `rnaturalearth`, `biscale`, `purrr`, `tidyr`
 
 ---
+---
 
-### `Yield_Predictions/Yield projections_legumes.Rmd` — Rendered report
+### `r_scripts/model.R` — GAMM
 
-Self-contained R Markdown notebook that downloads the primary dataset from GitHub at render time and reproduces the full visualisation pipeline. Renders to the public HTML report.
+Fits the main **Generalised Additive Mixed Model** for legume yield response (n = 469 runs, 25 studies, 18 countries).
 
-- Legumes report: https://namita-j.github.io/climate-impacts-legumes/Yield-projections_legumes.html
-- Other crops report: https://namita-j.github.io/climate-impacts-legumes/Yield-projections_other-crops.html
+A preliminary GAM with smooths on both ΔT and ΔP confirmed that temperature response is approximately linear (edf ≈ 3.25, p = 0.052), so ΔT enters as a parametric fixed effect while ΔP is modelled as a penalised regression spline `s(precip)`. CO₂ fertilisation status and adaptation (binary: No-adaptation vs Adaptation) are binary fixed effects. Random intercepts are specified for study and country.
+
+```
+dp ~ dt + s(precip) + adaptation + co2_group + (1|study_id) + (1|country)
+```
+
+A Shapiro-Wilk test confirmed non-normality in OLS residuals (W = 0.953, p < 0.001), supporting the GAMM specification. The full model showed ΔAIC = 60.9 vs the null; conditional R² = 0.820; country-level random effects explain 53% of total variance.
+
+Also runs:
+- Sensitivity analysis on CO₂-inclusive simulations only
+- OLS comparison with clustered standard errors (HC3) and VIF diagnostics
+- Exports fixed effects, smooth terms, and random effects variance to `excel_data/gamm_supplementary_table.xlsx`
+
+**Key packages:** `mgcv`, `gamm4`, `lme4`, `broom.mixed`, `performance`, `sandwich`, `lmtest`
 
 ---
 
@@ -101,7 +84,6 @@ OpenAlex_query.R + manual WoS screening
 yield_predictions_data.xlsx  (658 model runs, 10 legume species, 22 countries)
         ↓
 adding_climate.R  →  ΔT and ΔP extracted from WorldClim / NEX-GDDP rasters
-adding_spam.R     →  missing baseline yields filled from MapSPAM 2020
         ↓
 yield_predictions_data_with_nextgddp_yearly_baseline_deltas.xlsx  (main model input)
         ↓
