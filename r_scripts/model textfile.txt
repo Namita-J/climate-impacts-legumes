@@ -1,0 +1,198 @@
+# --- Load Packages ---
+library(tidyverse)
+library(readxl)
+library(sandwich)
+library(lmtest)
+library(mgcv)
+library(lme4)
+library(car)
+library(nlme)
+library(broom)
+library(broom.mixed)
+library(gamm4)
+library(gtsummary)
+library(gt)
+
+
+# --- 1. Data Import & Cleaning ---
+raw <- read_excel("excel_data/yield_predictions_data_with_nextgddp_yearly_baseline_deltas.xlsx", sheet = "Sheet1") %>%
+  janitor::clean_names()
+
+# --- 2. Define Legume Crops ---
+legume_crops <- c("Bambara", "Bush Bean", "Chickpea", "Climbing Bean", "Common Bean", 
+                  "Cowpea", "Faba Bean", "Green grams", "Groundnut", "Soybean")
+
+# --- 3. Filter and Recode ---
+df_legumes <- raw %>%
+  filter(crop %in% legume_crops) %>%
+  mutate(
+    dp         = as.numeric(climate_impacts_percent),
+    dt         = as.numeric(temp_change_nextgddp),
+    precip     = as.numeric(precip_change_nextgddp),
+    adaptation = factor(if_else(adaptation_type == "No", "No-adaptation", "Adaptation"),
+                        levels = c("No-adaptation", "Adaptation")),
+    co2_group  = factor(if_else(co2 == "Yes", "With CO2 fertilization", "Without CO2 fertilization"),
+                        levels = c("Without CO2 fertilization", "With CO2 fertilization")),
+    study_id   = factor(ref_no),
+    crop       = factor(crop),
+    country    = factor(country)
+  ) %>%
+  filter(complete.cases(dp, dt, precip, study_id, crop, country, adaptation, co2_group))
+
+# --- 4. LINEAR MODELS ---
+main_lm <- lm(dp ~ dt + precip + co2_group + adaptation, data = df_legumes)
+full_lm <- lm(dp ~ (dt + precip + co2_group + adaptation)^2, data = df_legumes)
+
+# --- 5. Clustered SE ---
+main_clustered <- coeftest(main_lm, vcov = vcovCL(main_lm, cluster = df_legumes$study_id))
+full_clustered <- coeftest(full_lm, vcov = vcovCL(full_lm, cluster = df_legumes$study_id))
+
+# --- 6. VIF ---
+vif(main_lm)
+
+# --- 7. Residuals ---
+par(mfrow = c(1,2))
+plot(main_lm, which = 1)
+plot(main_lm, which = 2)
+
+# --- 8. GAM Test for Linearity ---
+gam_test <- gam(dp ~ s(precip) + s(dt) + adaptation + co2_group, 
+                data = df_legumes, method = "REML")
+
+par(mfrow = c(1, 2))
+plot(gam_test, residuals = TRUE, shade = TRUE)
+summary(gam_test)
+
+# --- 9. GAMM (with Random Effects) — FIXED FORMULA ISSUE ---
+# Use formula separately to avoid parsing errors
+# Drop unused levels (important!)
+df_legumes_clean <- droplevels(df_legumes)
+
+#No temp and precip intercect
+gamm4_mod <- gamm4(
+  dp ~ dt + s(precip) + adaptation + co2_group,
+  random = ~ (1 | study_id/crop) + (1 | country),
+  data = df_legumes_clean
+)
+
+summary(gamm4_mod$gam)
+plot(gamm4_mod$gam, scheme = 2, shade = TRUE, pages = 1)
+
+mod_gam <- gam(dp ~ s(dt) + s(precip) + adaptation + co2_group, data = df_legumes_clean)
+mod_gamm <- gamm4(dp ~ s(dt) + s(precip) + adaptation + co2_group,
+                  random = ~ (1 | study_id/crop) + (1 | country),
+                  data = df_legumes_clean)
+
+summary(mod_gam)
+summary(mod_gamm$gam)
+
+# Fit model using gamm4
+
+gamm4_mod_t2 <- gamm4(
+  dp ~ t2(dt, precip) + adaptation + co2_group,
+  random = ~ (1 | study_id/crop) + (1 | country),
+  data = df_legumes_clean
+)
+
+summary(gamm4_mod_t2$gam)
+plot(gamm4_mod_t2$gam, scheme = 2, shade = TRUE)
+
+
+# Create a data frame with ΔT (temperature change) values
+# Create a data frame of ΔT values for prediction
+model_line <- data.frame(
+  dt = seq(min(df_legumes_clean$dt, na.rm = TRUE),
+           max(df_legumes_clean$dt, na.rm = TRUE),
+           length.out = 100),
+  precip = mean(df_legumes_clean$precip, na.rm = TRUE),
+  adaptation = factor("No-adaptation", levels = levels(df_legumes_clean$adaptation)),
+  co2_group = factor("Without CO2 fertilization", levels = levels(df_legumes_clean$co2_group))
+)
+
+model_line$pred <- predict(gamm4_mod$gam, newdata = model_line, type = "response")
+
+
+# Predict from the fitted GAMM
+model_line$pred <- predict(gamm4_mod$gam, newdata = model_line, type = "response")
+
+
+# Predict from GAMM
+model_line$pred <- predict(gamm4_mod$gam, newdata = model_line, type = "response")
+
+
+# Extract the mixed-effects model
+lme_mod <- gamm4_mod$mer
+
+# Summary of random effects
+summary(lme_mod)
+
+
+# Summary of GAM part
+summary(gamm4_mod$gam)
+
+# Summary of mixed model part
+summary(gamm4_mod$mer)
+
+
+# View the summary of the GAM (non-linear part)
+summary(gamm4_mod$gam)
+
+
+# Parametric coefficients
+gam_param <- tidy(gamm4_mod$gam, parametric = TRUE)
+
+# Smooth terms
+gam_smooth <- tidy(gamm4_mod$gam, parametric = FALSE)
+
+# Extract the tables
+lme_fixed <- broom.mixed::tidy(gamm4_mod$mer, effects = "fixed")
+
+
+writexl::write_xlsx(
+  list(
+    GAM_Parametric = gam_param,
+    GAM_SmoothTerms = gam_smooth,
+    LME_FixedEffects = lme_fixed
+  ),
+  path = "excel_data/gamm_model_outputs_updated.xlsx"
+)
+
+mod_nocrop <- gamm4(dp ~ s(precip) + dt + adaptation + co2_group,
+                    random = ~(1 | study_id) + (1 | country),
+                    data = df_legumes_clean)
+
+anova(gamm4_mod$mer, mod_nocrop$mer)  # Test if dropping crop affects model fit
+
+lme4::ranef(gamm4_mod$mer)  # Extract random intercepts for study_id, country, etc.
+
+
+#------------Extraction 
+gam_param  <- tidy(gamm4_mod$gam, parametric = TRUE)
+gam_smooth <- tidy(gamm4_mod$gam, parametric = FALSE)
+lme_fixed  <- broom.mixed::tidy(gamm4_mod$mer, effects = "fixed")
+
+# Combine GAM parametric and smooth terms into one clean summary
+gamm_summary_tbl <- bind_rows(
+  gam_param %>%
+    select(term, estimate, std.error, statistic, p.value) %>%
+    mutate(component = "Parametric"),
+  gam_smooth %>%
+    rename(term = smooth, statistic = statistic, p.value = p.value) %>%
+    mutate(
+      estimate = NA,
+      std.error = NA,
+      component = "Smooth"
+    ) %>%
+    select(term, estimate, std.error, statistic, p.value, component)
+)
+
+# --- 10. GAMM interactions ---
+gamm_adapt <- gamm(
+  dp ~ s(precip, by = adaptation) + s(dt, by = adaptation) + 
+    adaptation + co2_group,
+  random = list(study_id = ~1, crop = ~1, country = ~1),
+  data = df_legumes
+)
+summary(gamm_adapt$gam)
+plot(gamm_adapt$gam, pages = 1, residuals = TRUE, shade = TRUE)
+

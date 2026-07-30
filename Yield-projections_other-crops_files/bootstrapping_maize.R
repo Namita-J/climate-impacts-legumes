@@ -202,7 +202,7 @@ ggplot() +
 # Trt WITH  Control
 
 # 1. Load and clean data
-xls_file  <- "excel_data/yield_predictions_data_with_local_dT&dP_filled.xlsx"
+xls_file  <- "excel_data/adaptation_data_subset.xlsx"
 xls_sheet <- "Sheet1"
 
 raw <- read_excel(xls_file, sheet = xls_sheet) %>%
@@ -227,7 +227,8 @@ filtered_data_all <- raw %>%
     ref_no = factor(ref_no)
   ) %>%
   filter(!adapt_group %in% c("Mulch", "Others")) %>%
-  filter(!is.na(dt), !is.na(dp), !is.na(adapt_group))
+  filter(!is.na(dt), !is.na(dp), !is.na(adapt_group))  %>%
+  filter(!(crop == "Maize" & adapt_group == "Bundled"))
 
 filtered_data <- filtered_data_all %>%
   group_by(crop, adapt_group) %>%
@@ -313,13 +314,14 @@ prediction_results <- nested_data %>%
 # --- 4. Plotting ---
 
 adaptation_palette <- c(
-  "No adaptation" = "#66c2a5",  # teal
-  "Fertilizer" = "#8da0cb",     # light blue
-  "Variety" = "#a6d854",        # green
-  "Bundled" = "#fc8d62",        # orange
-  "Irrigation" = "#e78ac3",     # pink
-  "Planting date" = "#ffd92f"   # yellow
+  "No adaptation" = "#E69F00",  # orange
+  "Fertilizer"    = "#56B4E9",  # sky blue
+  "Variety"       = "#009E73",  # bluish green
+  "Bundled"       = "#D55E00",  # vermillion (only appears in wheat/rice)
+  "Irrigation"    = "#CC79A7",  # reddish purple
+  "Planting date" = "#F0E442"   # yellow
 )
+
 
 create_crop_plot <- function(crop_name) {
   # Get control range for this crop
@@ -339,7 +341,7 @@ create_crop_plot <- function(crop_name) {
   used_adapt_levels <- unique(plot_data_lines$adapt_group)
   
   ggplot() +
-    geom_point(data = plot_data_points, aes(x = dt, y = dp, color = adapt_group), alpha = 0.2) +
+    geom_jitter(data = plot_data_points, aes(x = dt, y = dp, color = adapt_group), width = 0.1, alpha = 0.4)+
     geom_ribbon(data = plot_data_lines, aes(x = dt, ymin = lo95, ymax = hi95, fill = adapt_group), alpha = 0.2) +
     geom_line(data = plot_data_lines, aes(x = dt, y = fit, color = adapt_group), linewidth = 1) +
     geom_hline(yintercept = 0, color = "black", linewidth = 0.6, linetype = "dotted") +
@@ -348,9 +350,9 @@ create_crop_plot <- function(crop_name) {
     scale_fill_manual(values = adaptation_palette, limits = used_adapt_levels, drop = TRUE) +
     guides(color = guide_legend(ncol = 2, byrow = TRUE)) +
     labs(
-      title = crop_name,
-      x = if (crop_name == "Rice") "ΔT from 2005 (°C)" else "",
-      y = if (crop_name == "Maize") "Yield change (%)" else ""
+      title = crop_name, # Set title to crop name
+      x = if(crop_name == "Wheat") "ΔT from 2005 (°C)" else "", # X-axis label only on middle plot
+      y = if(crop_name == "Maize") "Yield change (%)" else "" # Y-axis label only on first plot
     ) +
     theme_bw(base_size = 14) +
     theme(
