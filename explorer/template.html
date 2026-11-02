@@ -132,8 +132,7 @@ a { color: var(--accent); }
         <div class="controls" style="justify-content:space-between">
           <h3>Runs per crop by</h3>
           <div class="seg" id="heatDim" role="group" aria-label="Breakdown">
-            <button type="button" data-k="scen" aria-pressed="true">Scenario</button>
-            <button type="button" data-k="hor" aria-pressed="false">Horizon</button>
+            <button type="button" data-k="hor" aria-pressed="true">Horizon</button>
             <button type="button" data-k="ad" aria-pressed="false">Adaptation</button>
           </div>
         </div>
@@ -156,12 +155,6 @@ a { color: var(--accent); }
     </div>
     <div class="panel controls" style="gap:12px 24px">
       <div class="ctl"><label class="lbl" for="cropSel">Crop</label><select id="cropSel"></select></div>
-      <div class="ctl"><label class="lbl">CO₂ fertilisation</label>
-        <div class="seg" id="co2" role="group" aria-label="CO2 fertilisation">
-          <button type="button" data-k="all" aria-pressed="true">All runs</button>
-          <button type="button" data-k="with" aria-pressed="false">Modelled</button>
-          <button type="button" data-k="without" aria-pressed="false">Not modelled / unstated</button>
-        </div></div>
       <div class="ctl" id="groups"><label class="lbl">Practices</label></div>
       <div class="ctl"><label class="lbl">Points</label>
         <div class="seg" id="ptsTog" role="group" aria-label="Show points">
@@ -181,11 +174,11 @@ a { color: var(--accent); }
     <ul class="caveats">
       <li><b>Relative, not absolute.</b> Yield change is the percentage difference between each study's simulated future and simulated baseline yield. Baselines are model yields under each study's assumed management, which may sit closer to attainable than to farm-level actual yield. Applying these percentages to observed yields assumes the proportional response carries over.</li>
       <li><b>Warming axis.</b> ΔT is local mean-temperature change at the study coordinates from the NEX-GDDP-CMIP6 35-model ensemble (<span class="mono">temp_change_nextgddp</span>), not the scenario label the study reported. Runs without coordinates or a matched delta are excluded from the curves.</li>
-      <li><b>Scenario groups.</b> Low = RCP2.6, SSP1-2.6, SRES B1. Medium = RCP4.5, RCP6.0, SRES A1B, B2. High = RCP8.5, SSP3-7.0, SSP5-8.5, SRES A2, A1FI. Multi-scenario or ΔT-step records are "Mixed / other".</li>
+      <li><b>Horizons.</b> Near = future mid-point up to 2040, Mid = 2041–2070, End = after 2070.</li>
       <li><b>Practices.</b> Variety = any cultivar change. Fertilizer = all fertiliser levels. Planting date = early, late or shifted sowing. Bundled = two or more practices combined. Mulch and "other" are mapped in the coverage table but not fitted.</li>
-      <li><b>Outliers.</b> Runs beyond 3× the interquartile range within each crop × practice × CO₂ subset are dropped before fitting, as in the source analysis.</li>
+      <li><b>Outliers.</b> Runs beyond 3× the interquartile range within each crop × practice are dropped before fitting, as in the source analysis.</li>
       <li><b>Uncertainty is a floor.</b> The bootstrap resamples runs within each study, so the bands describe sampling of runs, not disagreement between studies or models. With few studies the curve shape can be driven by one paper; check the study count before quoting a value.</li>
-      <li><b>Pooled sources.</b> Records come from a Web of Science / Scopus search plus earlier compilations (Carr et al., Aggarwal et al., Hasegawa et al.). CO₂ fertilisation is mixed across runs; use the CO₂ switch to separate it.</li>
+      <li><b>Pooled sources.</b> Records come from a Web of Science / Scopus search plus earlier compilations (Carr et al., Aggarwal et al., Hasegawa et al.). Studies differ in whether their crop models include CO₂ fertilisation, and the curves pool both.</li>
     </ul>
     <details><summary id="refSum">Studies in the database</summary><div class="tbl-wrap" style="margin-top:10px"><table id="refTbl"></table></div></details>
   </section>
@@ -216,10 +209,12 @@ $("#kpis").innerHTML = [[fmt(K.rows), "model runs"], [K.studies, "studies"], [K.
 
 // Map
 const mapSel = $("#mapCrop");
-mapSel.innerHTML = `<option value="">All crops</option>` + D.crops.map(c => `<option>${esc(c.crop)}</option>`).join("");
+const FIT = Object.keys(D.fits);
+const runsOf = c => Object.values(D.fits[c].all).reduce((s, e) => s + e.n, 0);
+mapSel.innerHTML = `<option value="">All crops</option>` + FIT.map(c => `<option>${esc(c)}</option>`).join("");
 function drawMap() {
   const crop = mapSel.value;
-  const s = D.sites.filter(x => !crop || x.c.includes(crop));
+  const s = D.sites.filter(x => crop ? x.c.includes(crop) : x.c.some(c => FIT.includes(c)));
   const land = D.map.map(p => `<path class="land" d="${p}"/>`).join("");
   const dots = s.sort((a, b) => b.n - a.n).map((x, i) =>
     `<circle data-i="${D.sites.indexOf(x)}" cx="${x.lon}" cy="${-x.lat}" r="${(0.35 + 0.22 * Math.sqrt(x.n)).toFixed(2)}"/>`).join("");
@@ -235,17 +230,17 @@ function drawMap() {
 mapSel.onchange = drawMap; drawMap();
 
 // Coverage heatmap
-let heatK = "scen";
+let heatK = "hor";
 function drawHeat() {
   const cols = {scen: D.SCEN, hor: D.HOR, ad: D.AD}[heatK], tab = D[heatK];
-  const crops = D.crops.filter(c => c.rows >= 20).map(c => c.crop);
+  const crops = FIT;
   const mx = Math.max(...crops.flatMap(c => cols.map(k => tab[c][k][0])));
   $("#heatTbl").innerHTML = `<thead><tr><th>Crop</th>${cols.map(k => `<th class="num">${esc(k)}</th>`).join("")}</tr></thead><tbody>` +
     crops.map(c => `<tr><td>${esc(c)}</td>${cols.map(k => { const [n, st] = tab[c][k];
       const pct = n ? Math.round(12 + 70 * Math.sqrt(n / mx)) : 0;
       const bg = n ? `background:color-mix(in oklab, var(--seq) ${pct}%, var(--surface));${pct > 50 ? "color:#fff" : ""}` : "";
       return `<td class="cell ${n ? "" : "zero"}" style="${bg}" title="${n} runs from ${st} studies">${n ? `${n}<span style="opacity:.75"> · ${st}</span>` : "–"}</td>`; }).join("")}</tr>`).join("") + "</tbody>";
-  $("#heatNote").textContent = "Each cell shows runs · studies. Crops with fewer than 20 runs are left out. Shading scales with runs.";
+  $("#heatNote").textContent = "Each cell shows runs · studies. Crops match those in the chart below. Shading scales with runs.";
 }
 $("#heatDim").onclick = e => { const b = e.target.closest("button"); if (!b) return; heatK = b.dataset.k;
   $("#heatDim").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); drawHeat(); };
@@ -258,9 +253,8 @@ $("#modTbl").innerHTML = `<thead><tr><th>Crop model</th><th class="num">Runs</th
   D.models.slice(0, 10).map(m => `<tr><td>${esc(m.model)}</td><td class="num">${fmt(m.rows)}</td><td class="num">${m.studies}</td></tr>`).join("") + "</tbody>";
 
 // Response chart (inline SVG, no external library)
-const FIT = Object.keys(D.fits);
-const state = {crop: "Maize", co2: "all", pts: true, on: new Set(D.GROUPS)};
-$("#cropSel").innerHTML = FIT.map(f => `<option ${f === state.crop ? "selected" : ""}>${esc(f)}</option>`).join("");
+const state = {crop: "Maize", pts: true, on: new Set(D.GROUPS)};
+$("#cropSel").innerHTML = FIT.map(f => `<option value="${esc(f)}" ${f === state.crop ? "selected" : ""}>${esc(f)} (${fmt(runsOf(f))} model runs)</option>`).join("");
 $("#cropSel").onchange = e => { state.crop = e.target.value; drawChart(); };
 $("#groups").insertAdjacentHTML("beforeend", D.GROUPS.map(g =>
   `<button type="button" class="chip" data-g="${g}" aria-pressed="true" style="--c:var(${GVAR[g]})"><i></i>${g}</button>`).join(""));
@@ -268,11 +262,11 @@ $("#groups").onclick = e => { const b = e.target.closest(".chip"); if (!b) retur
   state.on.has(g) ? state.on.delete(g) : state.on.add(g); b.setAttribute("aria-pressed", state.on.has(g)); drawChart(); };
 function seg(id, key, cast) { $(id).onclick = e => { const b = e.target.closest("button"); if (!b) return;
   state[key] = cast(b.dataset.k); $(id).querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); drawChart(); }; }
-seg("#co2", "co2", String); seg("#ptsTog", "pts", v => v === "1");
+seg("#ptsTog", "pts", v => v === "1");
 
 const W = 860, H = 440, M = {l: 58, r: 16, t: 14, b: 48}, Y0 = -100, Y1 = 100;
 function drawChart() {
-  const panel = D.fits[state.crop][state.co2] || {};
+  const panel = D.fits[state.crop].all;
   const groups = D.GROUPS.filter(g => panel[g] && state.on.has(g));
   const allX = groups.flatMap(g => panel[g].pts.map(p => p[0]));
   const X0 = 0, X1 = Math.max(3, Math.ceil(Math.max(...allX, 0) + 0.3));
@@ -302,9 +296,9 @@ function drawChart() {
   });
   const box = $("#chart");
   box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Yield change against local warming for ${esc(state.crop)}">${svg}</svg>`;
-  $("#chartTitle").textContent = `${state.crop}: yield change vs local warming`;
+  $("#chartTitle").textContent = `${state.crop}: ${fmt(groups.reduce((s, g) => s + panel[g].n, 0))} model runs shown`;
   $("#chartNote").textContent = off ? `${off} runs beyond ±100% not shown` : "";
-  $("#chartLeg").innerHTML = leg.join("") || "<span>No runs for this crop under the current CO₂ setting.</span>";
+  $("#chartLeg").innerHTML = leg.join("") || "<span>Select at least one practice.</span>";
 
   const svgEl = box.querySelector("svg"), hair = $("#hair", svgEl);
   const toX = ev => { const r = svgEl.getBoundingClientRect(); return X0 + ((ev.clientX - r.left) * W / r.width - M.l) / (W - M.l - M.r) * (X1 - X0); };

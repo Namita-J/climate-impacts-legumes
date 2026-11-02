@@ -160,7 +160,7 @@ fits = {}
 FIT_CROPS = [c["crop"] for c in crops if c["with_dt"] >= 40]
 for c in FIT_CROPS:
     fits[c] = {}
-    for co2 in ("all", "with", "without"):
+    for co2 in ("all",):
         base = d[(d.crop == c) & d.dp.notna() & d.dt.notna() & d.adapt.isin(GROUPS)]
         if co2 != "all":
             base = base[base.co2 == co2]
