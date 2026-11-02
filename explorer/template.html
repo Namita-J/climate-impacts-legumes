@@ -1,0 +1,366 @@
+<title>African Crop Yield Projections</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single reading column (max 1180px), sections stacked: overview -> discovery -> response curves -> summary table -> methods */
+:root {
+  --bg: #f6f8f6; --surface: #ffffff; --ink: #14201b; --ink-2: #4b5852; --muted: #7b8781;
+  --line: #dde4df; --accent: #1f6b52; --accent-soft: #e3efe9; --seq: #2a78d6;
+  --g-none: #5f6672; --g-variety: #2a78d6; --g-fert: #eb6834; --g-irr: #1baf7a; --g-plant: #6250d6; --g-bundled: #e87ba4;
+  --warn: #b26a00; --ok: #1f7a3a;
+  --f-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111614; --surface: #19201d; --ink: #e9efec; --ink-2: #b5c0ba; --muted: #86928c;
+  --line: #2c3632; --accent: #5fc39c; --accent-soft: #1f2e28; --seq: #3987e5;
+  --g-none: #a3aab4; --g-variety: #3987e5; --g-fert: #d95926; --g-irr: #199e70; --g-plant: #9085e9; --g-bundled: #d55181;
+  --warn: #e0a040; --ok: #5cc27a; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #111614; --surface: #19201d; --ink: #e9efec; --ink-2: #b5c0ba; --muted: #86928c;
+  --line: #2c3632; --accent: #5fc39c; --accent-soft: #1f2e28; --seq: #3987e5;
+  --g-none: #a3aab4; --g-variety: #3987e5; --g-fert: #d95926; --g-irr: #199e70; --g-plant: #9085e9; --g-bundled: #d55181;
+  --warn: #e0a040; --ok: #5cc27a; color-scheme: dark; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--f-body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 40px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-size: clamp(26px, 4vw, 36px); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 22px; font-weight: 650; }
+h3 { font-size: 15px; font-weight: 600; }
+p { margin: 0; max-width: 72ch; }
+.eyebrow { font: 500 12px var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.lede { color: var(--ink-2); font-size: 16px; }
+section { display: grid; gap: 16px; min-width: 0; }
+.sec-head { display: grid; gap: 6px; }
+.note { color: var(--muted); font-size: 13px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1px; background: var(--line);
+  border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.kpi { background: var(--surface); padding: 14px 16px; display: grid; gap: 2px; }
+.kpi b { font: 600 24px var(--f-mono); font-variant-numeric: tabular-nums; }
+.kpi span { color: var(--ink-2); font-size: 13px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-weight: 600; color: var(--ink-2); font-size: 12px; position: relative; }
+th.sort { cursor: pointer; user-select: none; }
+th.sort:hover { color: var(--ink); }
+th.sort[aria-sort]::after { content: " ▾"; color: var(--accent); }
+th.sort[aria-sort="ascending"]::after { content: " ▴"; }
+td.num, th.num { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+tbody tr:hover { background: var(--accent-soft); }
+.bar { display: inline-block; height: 8px; border-radius: 0 4px 4px 0; background: var(--accent); vertical-align: middle; margin-right: 8px; }
+.tag { display: inline-block; font: 500 11px var(--f-mono); padding: 1px 7px; border-radius: 99px; border: 1px solid var(--line); color: var(--ink-2); }
+.tag.leg { color: var(--accent); border-color: var(--accent); }
+.tag.robust { color: var(--ok); border-color: var(--ok); }
+.tag.ind { color: var(--warn); border-color: var(--warn); }
+.tag.thin { color: var(--muted); }
+.neg { color: var(--ink); } .pos { color: var(--ink); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+.ctl { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.ctl > label.lbl { font-size: 12px; color: var(--ink-2); font-weight: 600; margin-right: 2px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { background: var(--surface); color: var(--ink-2); border: 0; padding: 6px 11px; font: 500 13px var(--f-body); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  border-radius: 99px; padding: 4px 11px 4px 8px; font: 500 13px var(--f-body); cursor: pointer; }
+.chip i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+.chip[aria-pressed="false"] { color: var(--muted); }
+.chip[aria-pressed="false"] i { background: transparent; box-shadow: inset 0 0 0 2px var(--c); }
+select { font: 500 13px var(--f-body); padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+button:focus-visible, select:focus-visible, th.sort:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.pcard { display: grid; gap: 6px; min-width: 0; }
+.pcard header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.plot { height: 380px; }
+.disc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 820px) { .disc { grid-template-columns: 1fr; } }
+.map svg { width: 100%; height: auto; display: block; }
+.map .land { fill: var(--accent-soft); stroke: var(--line); stroke-width: 0.12; }
+.map circle { fill: var(--accent); fill-opacity: 0.55; stroke: var(--surface); stroke-width: 0.15; }
+.map circle:hover { fill-opacity: 0.95; }
+.heat td.cell { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.heat td.cell.zero { color: var(--muted); }
+#tip { position: fixed; pointer-events: none; z-index: 20; background: var(--ink); color: var(--bg); padding: 6px 9px; border-radius: 6px;
+  font-size: 12.5px; line-height: 1.4; max-width: 280px; }
+.legend-note { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-2); }
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; }
+summary { cursor: pointer; font-weight: 600; }
+ul.caveats { margin: 0; padding-left: 20px; display: grid; gap: 8px; max-width: 80ch; }
+a { color: var(--accent); }
+.mono { font-family: var(--f-mono); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="sec-head" style="gap:12px">
+    <div class="eyebrow">Systematic review · crop-model projections · Africa</div>
+    <h1>How crop models project climate change to shift yields in Africa</h1>
+    <p class="lede">This page summarises a curated database of published crop-model projections for African sites. Each record is one model run: a crop, a location, a climate scenario and time slice, with or without an adaptation practice, reporting the projected yield change (%) against the study's own simulated baseline. Local warming (ΔT) at each site is harmonised from the NEX-GDDP-CMIP6 ensemble so that runs from different studies sit on one temperature axis.</p>
+    <p class="note">Dataset curated by Namita Joshi for a systematic review of crop-model projections in Africa. The analysis is unpublished; please contact the author before citing figures.</p>
+  </header>
+
+  <div class="kpis" id="kpis"></div>
+
+  <section id="discovery">
+    <div class="sec-head">
+      <div class="eyebrow">1 · What the data holds</div>
+      <h2>Coverage by crop</h2>
+      <p class="note">Maize dominates the evidence. Below roughly five studies, a crop's numbers reflect individual papers rather than a consensus. Click a column to sort it.</p>
+    </div>
+    <div class="panel tbl-wrap"><table id="cropTbl"></table></div>
+
+    <div class="disc">
+      <div class="panel map">
+        <div class="controls" style="justify-content:space-between;margin-bottom:8px">
+          <h3>Study sites</h3>
+          <div class="ctl"><label class="lbl" for="mapCrop">Crop</label><select id="mapCrop"></select></div>
+        </div>
+        <div id="mapBox"></div>
+        <p class="note" id="mapNote"></p>
+      </div>
+      <div class="panel" style="display:grid;gap:10px;align-content:start">
+        <div class="controls" style="justify-content:space-between">
+          <h3>Runs per crop by</h3>
+          <div class="seg" id="heatDim" role="group" aria-label="Breakdown">
+            <button type="button" data-k="scen" aria-pressed="true">Scenario</button>
+            <button type="button" data-k="hor" aria-pressed="false">Horizon</button>
+            <button type="button" data-k="ad" aria-pressed="false">Adaptation</button>
+          </div>
+        </div>
+        <div class="tbl-wrap"><table class="heat" id="heatTbl"></table></div>
+        <p class="note" id="heatNote"></p>
+      </div>
+    </div>
+
+    <div class="disc">
+      <div class="panel"><h3 style="margin-bottom:8px">Top countries</h3><div class="tbl-wrap"><table id="ctyTbl"></table></div></div>
+      <div class="panel"><h3 style="margin-bottom:8px">Crop models and source databases</h3><div class="tbl-wrap"><table id="modTbl"></table></div></div>
+    </div>
+  </section>
+
+  <section id="response">
+    <div class="sec-head">
+      <div class="eyebrow">2 · Yield response to local warming</div>
+      <h2>Projected yield change against ΔT, by adaptation practice</h2>
+      <p class="note">Points are model runs. Lines are quadratic fits per practice. Bands are 95% intervals from 1,000 bootstrap draws resampled within studies. A line is drawn only when a practice has at least 10 runs, 2 studies and a 1 °C spread of ΔT. Pick a crop for each panel.</p>
+    </div>
+    <div class="panel controls" style="gap:12px 24px">
+      <div class="ctl"><label class="lbl">CO₂ fertilisation</label>
+        <div class="seg" id="co2" role="group" aria-label="CO2 fertilisation">
+          <button type="button" data-k="all" aria-pressed="true">All runs</button>
+          <button type="button" data-k="with" aria-pressed="false">Modelled</button>
+          <button type="button" data-k="without" aria-pressed="false">Not modelled / unstated</button>
+        </div></div>
+      <div class="ctl" id="groups"><label class="lbl">Practices</label></div>
+      <div class="ctl"><label class="lbl">Points</label>
+        <div class="seg" id="ptsTog" role="group" aria-label="Show points">
+          <button type="button" data-k="1" aria-pressed="true">Show</button>
+          <button type="button" data-k="0" aria-pressed="false">Hide</button>
+        </div></div>
+    </div>
+    <div class="panels" id="panels"></div>
+  </section>
+
+  <section id="summary">
+    <div class="sec-head">
+      <div class="eyebrow">3 · Numbers to use</div>
+      <h2>Fitted yield change without adaptation</h2>
+      <p class="note">Bootstrap mean and 95% interval of the no-adaptation curve at fixed levels of local warming, following the CO₂ setting above. Values are blank where that warming level falls outside the crop's observed ΔT range. The robustness tag counts independent studies: 10 or more is robust, 5 to 9 is indicative, fewer is thin.</p>
+    </div>
+    <div class="panel tbl-wrap"><table id="sumTbl"></table></div>
+  </section>
+
+  <section id="methods">
+    <div class="sec-head"><div class="eyebrow">4 · Read before using</div><h2>Methods and caveats</h2></div>
+    <ul class="caveats">
+      <li><b>Relative, not absolute.</b> Yield change is the percentage difference between each study's simulated future and simulated baseline yield. Baselines are model yields under each study's assumed management, which may sit closer to attainable than to farm-level actual yield. Applying these percentages to observed yields assumes the proportional response carries over.</li>
+      <li><b>Warming axis.</b> ΔT is local mean-temperature change at the study coordinates from the NEX-GDDP-CMIP6 35-model ensemble (<span class="mono">temp_change_nextgddp</span>), not the scenario label the study reported. Runs without coordinates or a matched delta are excluded from the curves.</li>
+      <li><b>Scenario groups.</b> Low = RCP2.6, SSP1-2.6, SRES B1. Medium = RCP4.5, RCP6.0, SRES A1B, B2. High = RCP8.5, SSP3-7.0, SSP5-8.5, SRES A2, A1FI. Multi-scenario or ΔT-step records are "Mixed / other".</li>
+      <li><b>Practices.</b> Variety = any cultivar change. Fertilizer = all fertiliser levels. Planting date = early, late or shifted sowing. Bundled = two or more practices combined. Mulch and "other" are mapped in the coverage table but not fitted.</li>
+      <li><b>Outliers.</b> Runs beyond 3× the interquartile range within each crop × practice × CO₂ subset are dropped before fitting, as in the source analysis.</li>
+      <li><b>Uncertainty is a floor.</b> The bootstrap resamples runs within each study, so the bands describe sampling of runs, not disagreement between studies or models. With few studies the curve shape can be driven by one paper; check the study count before quoting a value.</li>
+      <li><b>Pooled sources.</b> Records come from a Web of Science / Scopus search plus earlier compilations (Carr et al., Aggarwal et al., Hasegawa et al.). CO₂ fertilisation is mixed across runs; use the CO₂ switch to separate it.</li>
+    </ul>
+    <details><summary id="refSum">Studies in the database</summary><div class="tbl-wrap" style="margin-top:10px"><table id="refTbl"></table></div></details>
+  </section>
+</div>
+<div id="tip" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.2/plotly.min.js"></script>
+<script>
+const D = __DATA__;
+const $ = (s, r = document) => r.querySelector(s);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt = n => n.toLocaleString("en-US");
+const sgn = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(Math.abs(v) < 10 ? 1 : 0);
+const GVAR = {"No adaptation": "--g-none", "Variety": "--g-variety", "Fertilizer": "--g-fert", "Irrigation": "--g-irr", "Planting date": "--g-plant", "Bundled": "--g-bundled"};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+
+const tip = $("#tip");
+function showTip(e, html) { tip.innerHTML = html; tip.hidden = false;
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.min(e.clientX + 14, innerWidth - w - 8) + "px";
+  tip.style.top = Math.max(8, e.clientY - h - 10) + "px"; }
+const hideTip = () => { tip.hidden = true; };
+
+// KPIs
+const K = D.kpi;
+$("#kpis").innerHTML = [[fmt(K.rows), "model runs"], [K.studies, "studies"], [K.crops, "crops"], [K.countries, "countries"],
+  [fmt(K.with_dt), "runs with harmonised ΔT"], [K.years.join("–"), "publication years"]]
+  .map(([b, s]) => `<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join("");
+
+// Crop table
+const CT = [
+  ["crop", "Crop", 0], ["legume", "Type", 0], ["rows", "Runs", 1], ["studies", "Studies", 1], ["countries", "Countries", 1],
+  ["with_dt", "With ΔT", 1], ["co2_yes", "CO₂ modelled", 1], ["adapt_rows", "Adaptation runs", 1],
+  ["baseline_t", "Baseline t/ha", 1], ["median_noad", "Median Δ yield, no adaptation", 1], ["years", "Published", 0]];
+let ctSort = ["rows", -1];
+const maxRows = Math.max(...D.crops.map(c => c.rows));
+function drawCropTbl() {
+  const [k, dir] = ctSort;
+  const rows = [...D.crops].sort((a, b) => { const x = a[k] ?? -1e9, y = b[k] ?? -1e9;
+    return (typeof x === "string" ? x.localeCompare(y) : x - y) * dir; });
+  $("#cropTbl").innerHTML = `<thead><tr>${CT.map(([key, lab, n]) =>
+    `<th class="sort ${n ? "num" : ""}" tabindex="0" data-k="${key}" ${key === k ? `aria-sort="${dir > 0 ? "ascending" : "descending"}"` : ""}>${lab}</th>`).join("")}</tr></thead><tbody>` +
+    rows.map(c => `<tr><td><b>${esc(c.crop)}</b></td><td>${c.legume ? '<span class="tag leg">legume</span>' : '<span class="tag">other</span>'}</td>
+      <td class="num"><span class="bar" style="width:${Math.max(2, 70 * c.rows / maxRows)}px"></span>${fmt(c.rows)}</td>
+      <td class="num">${c.studies}</td><td class="num">${c.countries}</td><td class="num">${fmt(c.with_dt)}</td>
+      <td class="num">${Math.round(100 * c.co2_yes / c.rows)}%</td><td class="num">${fmt(c.adapt_rows)}</td><td class="num">${c.baseline_t}</td>
+      <td class="num">${c.median_noad == null ? "–" : sgn(c.median_noad) + "%"}</td><td class="num">${c.years ? c.years.join("–") : "–"}</td></tr>`).join("") + "</tbody>";
+  $("#cropTbl").querySelectorAll("th.sort").forEach(th => {
+    const go = () => { ctSort = [th.dataset.k, ctSort[0] === th.dataset.k ? -ctSort[1] : -1]; drawCropTbl(); };
+    th.onclick = go; th.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } };
+  });
+}
+drawCropTbl();
+
+// Map
+const mapSel = $("#mapCrop");
+mapSel.innerHTML = `<option value="">All crops</option>` + D.crops.map(c => `<option>${esc(c.crop)}</option>`).join("");
+function drawMap() {
+  const crop = mapSel.value;
+  const s = D.sites.filter(x => !crop || x.c.includes(crop));
+  const land = D.map.map(p => `<path class="land" d="${p}"/>`).join("");
+  const dots = s.sort((a, b) => b.n - a.n).map((x, i) =>
+    `<circle data-i="${D.sites.indexOf(x)}" cx="${x.lon}" cy="${-x.lat}" r="${(0.35 + 0.22 * Math.sqrt(x.n)).toFixed(2)}"/>`).join("");
+  $("#mapBox").innerHTML = `<svg viewBox="-19 -38 73 75" role="img" aria-label="Map of study sites in Africa">${land}${dots}</svg>`;
+  const global = s.filter(x => x.sc === "Global").length;
+  $("#mapNote").textContent = `${s.length} distinct coordinates${crop ? " for " + crop : ""}. Circle area scales with the number of runs. ${global ? global + " points come from global gridded studies and mark a representative cell, not a field site." : ""}`;
+  $("#mapBox").querySelectorAll("circle").forEach(c => {
+    c.onmousemove = e => { const x = D.sites[+c.dataset.i];
+      showTip(e, `<b>${esc(x.k || "Unknown")}</b> · ${x.lat}, ${x.lon}<br>${x.n} runs · ${x.s} ${x.s > 1 ? "studies" : "study"}<br>${esc(x.c.join(", "))}`); };
+    c.onmouseleave = hideTip;
+  });
+}
+mapSel.onchange = drawMap; drawMap();
+
+// Coverage heatmap
+let heatK = "scen";
+function drawHeat() {
+  const cols = {scen: D.SCEN, hor: D.HOR, ad: D.AD}[heatK], tab = D[heatK];
+  const crops = D.crops.filter(c => c.rows >= 20).map(c => c.crop);
+  const mx = Math.max(...crops.flatMap(c => cols.map(k => tab[c][k][0])));
+  $("#heatTbl").innerHTML = `<thead><tr><th>Crop</th>${cols.map(k => `<th class="num">${esc(k)}</th>`).join("")}</tr></thead><tbody>` +
+    crops.map(c => `<tr><td>${esc(c)}</td>${cols.map(k => { const [n, st] = tab[c][k];
+      const pct = n ? Math.round(12 + 70 * Math.sqrt(n / mx)) : 0;
+      const bg = n ? `background:color-mix(in oklab, var(--seq) ${pct}%, var(--surface));${pct > 50 ? "color:#fff" : ""}` : "";
+      return `<td class="cell ${n ? "" : "zero"}" style="${bg}" title="${n} runs from ${st} studies">${n ? `${n}<span style="opacity:.75"> · ${st}</span>` : "–"}</td>`; }).join("")}</tr>`).join("") + "</tbody>";
+  $("#heatNote").textContent = "Each cell shows runs · studies. Crops with fewer than 20 runs are left out. Shading scales with runs.";
+}
+$("#heatDim").onclick = e => { const b = e.target.closest("button"); if (!b) return; heatK = b.dataset.k;
+  $("#heatDim").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); drawHeat(); };
+drawHeat();
+
+// Countries + models
+$("#ctyTbl").innerHTML = `<thead><tr><th>Country or region</th><th class="num">Runs</th><th class="num">Studies</th></tr></thead><tbody>` +
+  D.country.slice(0, 15).map(c => `<tr><td>${esc(c.country)}${c.multi ? ' <span class="tag">multi-country</span>' : ""}</td><td class="num">${fmt(c.rows)}</td><td class="num">${c.studies}</td></tr>`).join("") + "</tbody>";
+$("#modTbl").innerHTML = `<thead><tr><th>Crop model</th><th class="num">Runs</th><th class="num">Studies</th></tr></thead><tbody>` +
+  D.models.slice(0, 10).map(m => `<tr><td>${esc(m.model)}</td><td class="num">${fmt(m.rows)}</td><td class="num">${m.studies}</td></tr>`).join("") +
+  `<tr><th>Source database</th><th class="num">Runs</th><th class="num">Studies</th></tr>` +
+  D.src.sort((a, b) => b.rows - a.rows).map(m => `<tr><td>${esc(m.src)}</td><td class="num">${fmt(m.rows)}</td><td class="num">${m.studies}</td></tr>`).join("") + "</tbody>";
+
+// Response panels
+const FIT = Object.keys(D.fits);
+const state = {co2: "all", pts: true, on: new Set(["No adaptation", "Variety", "Fertilizer", "Irrigation", "Planting date", "Bundled"]), panels: ["Maize", "Wheat", "Rice"]};
+$("#groups").insertAdjacentHTML("beforeend", D.GROUPS.map(g =>
+  `<button type="button" class="chip" data-g="${g}" aria-pressed="true" style="--c:var(${GVAR[g]})"><i></i>${g}</button>`).join(""));
+$("#groups").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; const g = b.dataset.g;
+  state.on.has(g) ? state.on.delete(g) : state.on.add(g); b.setAttribute("aria-pressed", state.on.has(g)); drawPanels(); };
+function seg(id, key, cast) { $(id).onclick = e => { const b = e.target.closest("button"); if (!b) return;
+  state[key] = cast(b.dataset.k); $(id).querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); drawPanels(); drawSummary(); }; }
+seg("#co2", "co2", String); seg("#ptsTog", "pts", v => v === "1");
+
+$("#panels").innerHTML = state.panels.map((c, i) => `<div class="panel pcard"><header>
+  <select aria-label="Crop for panel ${i + 1}" id="pSel${i}">${FIT.map(f => `<option ${f === c ? "selected" : ""}>${esc(f)}</option>`).join("")}</select>
+  <span class="note" id="pNote${i}"></span></header><div class="plot" id="plot${i}"></div><div class="legend-note" id="pLeg${i}"></div></div>`).join("");
+state.panels.forEach((_, i) => { $("#pSel" + i).onchange = e => { state.panels[i] = e.target.value; drawPanel(i); }; });
+
+function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+function drawPanel(i) {
+  const crop = state.panels[i], panel = D.fits[crop][state.co2] || {};
+  const ink = css("--ink"), ink2 = css("--ink-2"), line = css("--line"), surf = css("--surface"), font = css("--f-body");
+  const traces = []; let off = 0; const leg = [];
+  for (const g of D.GROUPS) {
+    const e = panel[g]; if (!e || !state.on.has(g)) continue;
+    const col = css(GVAR[g]);
+    if (e.curve) {
+      const xs = e.curve.map(r => r[0]);
+      traces.push({x: [...xs, ...xs.slice().reverse()], y: [...e.curve.map(r => r[3]), ...e.curve.map(r => r[2]).reverse()],
+        fill: "toself", fillcolor: hexA(col, 0.18), line: {width: 0}, hoverinfo: "skip", showlegend: false, type: "scatter"});
+      traces.push({x: xs, y: e.curve.map(r => r[1]), mode: "lines", line: {color: col, width: 2}, name: g, type: "scatter",
+        customdata: e.curve.map(r => [r[2], r[3]]),
+        hovertemplate: `<b>${g}</b><br>ΔT %{x:.1f} °C<br>Fitted %{y:+.1f}%<br>95% band %{customdata[0]:+.0f} to %{customdata[1]:+.0f}%<extra></extra>`});
+    }
+    if (state.pts) {
+      off += e.pts.filter(p => p[1] < -100 || p[1] > 100).length;
+      traces.push({x: e.pts.map(p => p[0]), y: e.pts.map(p => p[1]), mode: "markers", type: "scatter", name: g, showlegend: false,
+        marker: {color: hexA(col, 0.55), size: 6, line: {color: surf, width: 1}}, customdata: e.pts.map(p => p[3]),
+        hovertemplate: `<b>${g}</b> · %{customdata}<br>ΔT %{x:.2f} °C · yield %{y:+.1f}%<extra></extra>`});
+    }
+    leg.push(`<span><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${col};margin-right:5px"></i>${g}: ${e.n} runs, ${e.studies} ${e.studies > 1 ? "studies" : "study"}${e.curve ? "" : " (no fit)"}</span>`);
+  }
+  $("#pNote" + i).textContent = off ? `${off} runs beyond ±100% not shown` : "";
+  $("#pLeg" + i).innerHTML = leg.join("") || '<span>No runs for this crop under the current CO₂ setting.</span>';
+  const ax = {gridcolor: line, zerolinecolor: line, linecolor: line, tickfont: {color: ink2, size: 11}, titlefont: {color: ink2, size: 12}};
+  Plotly.react("plot" + i, traces, {
+    margin: {l: 48, r: 10, t: 8, b: 40}, paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
+    font: {family: font, color: ink}, showlegend: false, hovermode: "closest",
+    hoverlabel: {bgcolor: ink, font: {color: css("--bg"), family: font}, bordercolor: ink},
+    xaxis: {...ax, title: {text: "ΔT at site (°C)"}, range: [0.3, 5.5], zeroline: false},
+    yaxis: {...ax, title: {text: "Yield change (%)"}, range: [-100, 100], zeroline: false, dtick: 50},
+    shapes: [{type: "line", xref: "paper", x0: 0, x1: 1, y0: 0, y1: 0, line: {color: ink2, width: 1, dash: "dot"}}],
+  }, {displayModeBar: false, responsive: true});
+}
+const drawPanels = () => state.panels.forEach((_, i) => drawPanel(i));
+
+// Summary
+function drawSummary() {
+  const L = ["1", "1.5", "2", "3", "4"];
+  const rows = FIT.map(c => ({c, e: (D.fits[c][state.co2] || {})["No adaptation"]})).filter(r => r.e)
+    .sort((a, b) => b.e.studies - a.e.studies);
+  $("#sumTbl").innerHTML = `<thead><tr><th>Crop</th>${L.map(l => `<th class="num">+${l} °C</th>`).join("")}<th class="num">Runs</th><th class="num">Studies</th><th>Robustness</th></tr></thead><tbody>` +
+    rows.map(({c, e}) => { const tag = e.studies >= 10 ? '<span class="tag robust">robust</span>' : e.studies >= 5 ? '<span class="tag ind">indicative</span>' : '<span class="tag thin">thin</span>';
+      return `<tr><td><b>${esc(c)}</b></td>${L.map(l => { const v = e.at && e.at[l];
+        return `<td class="num">${v ? `${sgn(v[0])}% <span class="note">(${sgn(v[1])} to ${sgn(v[2])})</span>` : "–"}</td>`; }).join("")}
+        <td class="num">${e.n}</td><td class="num">${e.studies}</td><td>${e.at ? tag : '<span class="tag thin">no fit</span>'}</td></tr>`; }).join("") + "</tbody>";
+}
+
+// References
+$("#refSum").textContent = `Studies in the database (${D.refs.length})`;
+$("#refTbl").innerHTML = `<thead><tr><th>Reference</th><th class="num">Year</th><th>Crops</th><th class="num">Runs</th><th>Source</th><th>DOI</th></tr></thead><tbody>` +
+  [...D.refs].sort((a, b) => (a.ref || "").localeCompare(b.ref || "")).map(r => `<tr><td>${esc(r.ref || "Ref " + r.id)}</td><td class="num">${r.year ?? "–"}</td>
+    <td>${esc(r.crops.join(", "))}</td><td class="num">${r.rows}</td><td>${esc(r.src)}</td>
+    <td>${r.doi ? `<a href="https://doi.org/${esc(r.doi.replace(/^https?:\/\/(dx\.)?doi\.org\//, ""))}" target="_blank" rel="noopener">${esc(r.doi.replace(/^https?:\/\/(dx\.)?doi\.org\//, ""))}</a>` : "–"}</td></tr>`).join("") + "</tbody>";
+
+function boot() { if (!window.Plotly) { $("#panels").innerHTML = '<p class="note">The chart library did not load. Reload the page to see the response curves.</p>'; drawSummary(); return; }
+  drawPanels(); drawSummary(); }
+boot();
+const redraw = () => window.Plotly && drawPanels();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redraw);
+new MutationObserver(redraw).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
+</script>
