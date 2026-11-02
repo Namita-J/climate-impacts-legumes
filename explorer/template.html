@@ -73,10 +73,16 @@ tbody tr:hover { background: var(--accent-soft); }
 .chip[aria-pressed="false"] i { background: transparent; box-shadow: inset 0 0 0 2px var(--c); }
 select { font: 500 13px var(--f-body); padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
 button:focus-visible, select:focus-visible, th.sort:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
-.pcard { display: grid; gap: 6px; min-width: 0; }
-.pcard header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
-.plot { height: 380px; }
+.pcard { display: grid; gap: 8px; min-width: 0; }
+.pcard header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.chart svg { width: 100%; height: auto; display: block; font-family: var(--f-body); }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .zero { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart .tick { fill: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.chart .axl { fill: var(--ink-2); font-size: 13px; }
+.chart .hair { stroke: var(--ink-2); stroke-width: 1; }
+.chart .pt { fill-opacity: 0.5; stroke: var(--surface); stroke-width: 1; }
+.chart .pt:hover { fill-opacity: 1; }
 .disc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
 @media (max-width: 820px) { .disc { grid-template-columns: 1fr; } }
 .map svg { width: 100%; height: auto; display: block; }
@@ -109,10 +115,9 @@ a { color: var(--accent); }
   <section id="discovery">
     <div class="sec-head">
       <div class="eyebrow">1 · What the data holds</div>
-      <h2>Coverage by crop</h2>
-      <p class="note">Maize dominates the evidence. Below roughly five studies, a crop's numbers reflect individual papers rather than a consensus. Click a column to sort it.</p>
+      <h2>Where the evidence comes from</h2>
+      <p class="note">Maize dominates the evidence. Below roughly five studies, a crop's numbers reflect individual papers rather than a consensus.</p>
     </div>
-    <div class="panel tbl-wrap"><table id="cropTbl"></table></div>
 
     <div class="disc">
       <div class="panel map">
@@ -139,7 +144,7 @@ a { color: var(--accent); }
 
     <div class="disc">
       <div class="panel"><h3 style="margin-bottom:8px">Top countries</h3><div class="tbl-wrap"><table id="ctyTbl"></table></div></div>
-      <div class="panel"><h3 style="margin-bottom:8px">Crop models and source databases</h3><div class="tbl-wrap"><table id="modTbl"></table></div></div>
+      <div class="panel"><h3 style="margin-bottom:8px">Crop models</h3><div class="tbl-wrap"><table id="modTbl"></table></div></div>
     </div>
   </section>
 
@@ -147,9 +152,10 @@ a { color: var(--accent); }
     <div class="sec-head">
       <div class="eyebrow">2 · Yield response to local warming</div>
       <h2>Projected yield change against ΔT, by adaptation practice</h2>
-      <p class="note">Points are model runs. Lines are quadratic fits per practice. Bands are 95% intervals from 1,000 bootstrap draws resampled within studies. A line is drawn only when a practice has at least 10 runs, 2 studies and a 1 °C spread of ΔT. Pick a crop for each panel.</p>
+      <p class="note">Points are model runs. Lines are quadratic fits per practice. Bands are 95% intervals from 1,000 bootstrap draws resampled within studies. A line is drawn only when a practice has at least 10 runs, 2 studies and a 1 °C spread of ΔT. Hover a line or point for values.</p>
     </div>
     <div class="panel controls" style="gap:12px 24px">
+      <div class="ctl"><label class="lbl" for="cropSel">Crop</label><select id="cropSel"></select></div>
       <div class="ctl"><label class="lbl">CO₂ fertilisation</label>
         <div class="seg" id="co2" role="group" aria-label="CO2 fertilisation">
           <button type="button" data-k="all" aria-pressed="true">All runs</button>
@@ -163,20 +169,15 @@ a { color: var(--accent); }
           <button type="button" data-k="0" aria-pressed="false">Hide</button>
         </div></div>
     </div>
-    <div class="panels" id="panels"></div>
-  </section>
-
-  <section id="summary">
-    <div class="sec-head">
-      <div class="eyebrow">3 · Numbers to use</div>
-      <h2>Fitted yield change without adaptation</h2>
-      <p class="note">Bootstrap mean and 95% interval of the no-adaptation curve at fixed levels of local warming, following the CO₂ setting above. Values are blank where that warming level falls outside the crop's observed ΔT range. The robustness tag counts independent studies: 10 or more is robust, 5 to 9 is indicative, fewer is thin.</p>
+    <div class="panel pcard">
+      <header><h3 id="chartTitle"></h3><span class="note" id="chartNote"></span></header>
+      <div id="chart" class="chart"></div>
+      <div class="legend-note" id="chartLeg"></div>
     </div>
-    <div class="panel tbl-wrap"><table id="sumTbl"></table></div>
   </section>
 
   <section id="methods">
-    <div class="sec-head"><div class="eyebrow">4 · Read before using</div><h2>Methods and caveats</h2></div>
+    <div class="sec-head"><div class="eyebrow">3 · Read before using</div><h2>Methods and caveats</h2></div>
     <ul class="caveats">
       <li><b>Relative, not absolute.</b> Yield change is the percentage difference between each study's simulated future and simulated baseline yield. Baselines are model yields under each study's assumed management, which may sit closer to attainable than to farm-level actual yield. Applying these percentages to observed yields assumes the proportional response carries over.</li>
       <li><b>Warming axis.</b> ΔT is local mean-temperature change at the study coordinates from the NEX-GDDP-CMIP6 35-model ensemble (<span class="mono">temp_change_nextgddp</span>), not the scenario label the study reported. Runs without coordinates or a matched delta are excluded from the curves.</li>
@@ -191,7 +192,6 @@ a { color: var(--accent); }
 </div>
 <div id="tip" hidden></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.2/plotly.min.js"></script>
 <script>
 const D = __DATA__;
 const $ = (s, r = document) => r.querySelector(s);
@@ -213,31 +213,6 @@ const K = D.kpi;
 $("#kpis").innerHTML = [[fmt(K.rows), "model runs"], [K.studies, "studies"], [K.crops, "crops"], [K.countries, "countries"],
   [fmt(K.with_dt), "runs with harmonised ΔT"], [K.years.join("–"), "publication years"]]
   .map(([b, s]) => `<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join("");
-
-// Crop table
-const CT = [
-  ["crop", "Crop", 0], ["legume", "Type", 0], ["rows", "Runs", 1], ["studies", "Studies", 1], ["countries", "Countries", 1],
-  ["with_dt", "With ΔT", 1], ["co2_yes", "CO₂ modelled", 1], ["adapt_rows", "Adaptation runs", 1],
-  ["baseline_t", "Baseline t/ha", 1], ["median_noad", "Median Δ yield, no adaptation", 1], ["years", "Published", 0]];
-let ctSort = ["rows", -1];
-const maxRows = Math.max(...D.crops.map(c => c.rows));
-function drawCropTbl() {
-  const [k, dir] = ctSort;
-  const rows = [...D.crops].sort((a, b) => { const x = a[k] ?? -1e9, y = b[k] ?? -1e9;
-    return (typeof x === "string" ? x.localeCompare(y) : x - y) * dir; });
-  $("#cropTbl").innerHTML = `<thead><tr>${CT.map(([key, lab, n]) =>
-    `<th class="sort ${n ? "num" : ""}" tabindex="0" data-k="${key}" ${key === k ? `aria-sort="${dir > 0 ? "ascending" : "descending"}"` : ""}>${lab}</th>`).join("")}</tr></thead><tbody>` +
-    rows.map(c => `<tr><td><b>${esc(c.crop)}</b></td><td>${c.legume ? '<span class="tag leg">legume</span>' : '<span class="tag">other</span>'}</td>
-      <td class="num"><span class="bar" style="width:${Math.max(2, 70 * c.rows / maxRows)}px"></span>${fmt(c.rows)}</td>
-      <td class="num">${c.studies}</td><td class="num">${c.countries}</td><td class="num">${fmt(c.with_dt)}</td>
-      <td class="num">${Math.round(100 * c.co2_yes / c.rows)}%</td><td class="num">${fmt(c.adapt_rows)}</td><td class="num">${c.baseline_t}</td>
-      <td class="num">${c.median_noad == null ? "–" : sgn(c.median_noad) + "%"}</td><td class="num">${c.years ? c.years.join("–") : "–"}</td></tr>`).join("") + "</tbody>";
-  $("#cropTbl").querySelectorAll("th.sort").forEach(th => {
-    const go = () => { ctSort = [th.dataset.k, ctSort[0] === th.dataset.k ? -ctSort[1] : -1]; drawCropTbl(); };
-    th.onclick = go; th.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } };
-  });
-}
-drawCropTbl();
 
 // Map
 const mapSel = $("#mapCrop");
@@ -280,74 +255,75 @@ drawHeat();
 $("#ctyTbl").innerHTML = `<thead><tr><th>Country or region</th><th class="num">Runs</th><th class="num">Studies</th></tr></thead><tbody>` +
   D.country.slice(0, 15).map(c => `<tr><td>${esc(c.country)}${c.multi ? ' <span class="tag">multi-country</span>' : ""}</td><td class="num">${fmt(c.rows)}</td><td class="num">${c.studies}</td></tr>`).join("") + "</tbody>";
 $("#modTbl").innerHTML = `<thead><tr><th>Crop model</th><th class="num">Runs</th><th class="num">Studies</th></tr></thead><tbody>` +
-  D.models.slice(0, 10).map(m => `<tr><td>${esc(m.model)}</td><td class="num">${fmt(m.rows)}</td><td class="num">${m.studies}</td></tr>`).join("") +
-  `<tr><th>Source database</th><th class="num">Runs</th><th class="num">Studies</th></tr>` +
-  D.src.sort((a, b) => b.rows - a.rows).map(m => `<tr><td>${esc(m.src)}</td><td class="num">${fmt(m.rows)}</td><td class="num">${m.studies}</td></tr>`).join("") + "</tbody>";
+  D.models.slice(0, 10).map(m => `<tr><td>${esc(m.model)}</td><td class="num">${fmt(m.rows)}</td><td class="num">${m.studies}</td></tr>`).join("") + "</tbody>";
 
-// Response panels
+// Response chart (inline SVG, no external library)
 const FIT = Object.keys(D.fits);
-const state = {co2: "all", pts: true, on: new Set(["No adaptation", "Variety", "Fertilizer", "Irrigation", "Planting date", "Bundled"]), panels: ["Maize", "Wheat", "Rice"]};
+const state = {crop: "Maize", co2: "all", pts: true, on: new Set(D.GROUPS)};
+$("#cropSel").innerHTML = FIT.map(f => `<option ${f === state.crop ? "selected" : ""}>${esc(f)}</option>`).join("");
+$("#cropSel").onchange = e => { state.crop = e.target.value; drawChart(); };
 $("#groups").insertAdjacentHTML("beforeend", D.GROUPS.map(g =>
   `<button type="button" class="chip" data-g="${g}" aria-pressed="true" style="--c:var(${GVAR[g]})"><i></i>${g}</button>`).join(""));
 $("#groups").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; const g = b.dataset.g;
-  state.on.has(g) ? state.on.delete(g) : state.on.add(g); b.setAttribute("aria-pressed", state.on.has(g)); drawPanels(); };
+  state.on.has(g) ? state.on.delete(g) : state.on.add(g); b.setAttribute("aria-pressed", state.on.has(g)); drawChart(); };
 function seg(id, key, cast) { $(id).onclick = e => { const b = e.target.closest("button"); if (!b) return;
-  state[key] = cast(b.dataset.k); $(id).querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); drawPanels(); drawSummary(); }; }
+  state[key] = cast(b.dataset.k); $(id).querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); drawChart(); }; }
 seg("#co2", "co2", String); seg("#ptsTog", "pts", v => v === "1");
 
-$("#panels").innerHTML = state.panels.map((c, i) => `<div class="panel pcard"><header>
-  <select aria-label="Crop for panel ${i + 1}" id="pSel${i}">${FIT.map(f => `<option ${f === c ? "selected" : ""}>${esc(f)}</option>`).join("")}</select>
-  <span class="note" id="pNote${i}"></span></header><div class="plot" id="plot${i}"></div><div class="legend-note" id="pLeg${i}"></div></div>`).join("");
-state.panels.forEach((_, i) => { $("#pSel" + i).onchange = e => { state.panels[i] = e.target.value; drawPanel(i); }; });
-
-function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
-function drawPanel(i) {
-  const crop = state.panels[i], panel = D.fits[crop][state.co2] || {};
-  const ink = css("--ink"), ink2 = css("--ink-2"), line = css("--line"), surf = css("--surface"), font = css("--f-body");
-  const traces = []; let off = 0; const leg = [];
-  for (const g of D.GROUPS) {
-    const e = panel[g]; if (!e || !state.on.has(g)) continue;
-    const col = css(GVAR[g]);
+const W = 860, H = 440, M = {l: 58, r: 16, t: 14, b: 48}, Y0 = -100, Y1 = 100;
+function drawChart() {
+  const panel = D.fits[state.crop][state.co2] || {};
+  const groups = D.GROUPS.filter(g => panel[g] && state.on.has(g));
+  const allX = groups.flatMap(g => panel[g].pts.map(p => p[0]));
+  const X0 = 0, X1 = Math.max(3, Math.ceil(Math.max(...allX, 0) + 0.3));
+  const sx = x => M.l + (x - X0) / (X1 - X0) * (W - M.l - M.r);
+  const sy = y => M.t + (Y1 - Math.max(Y0, Math.min(Y1, y))) / (Y1 - Y0) * (H - M.t - M.b);
+  let svg = "";
+  for (let y = Y0; y <= Y1; y += 50) svg += `<line class="grid" x1="${M.l}" x2="${W - M.r}" y1="${sy(y)}" y2="${sy(y)}"/><text class="tick" x="${M.l - 8}" y="${sy(y) + 4}" text-anchor="end">${y > 0 ? "+" : ""}${y}</text>`;
+  for (let x = 1; x <= X1; x++) svg += `<line class="grid" x1="${sx(x)}" x2="${sx(x)}" y1="${M.t}" y2="${H - M.b}"/><text class="tick" x="${sx(x)}" y="${H - M.b + 18}" text-anchor="middle">${x}</text>`;
+  svg += `<line class="zero" x1="${M.l}" x2="${W - M.r}" y1="${sy(0)}" y2="${sy(0)}"/>`;
+  svg += `<text class="axl" x="${(M.l + W - M.r) / 2}" y="${H - 8}" text-anchor="middle">ΔT at site (°C)</text>`;
+  svg += `<text class="axl" transform="rotate(-90)" x="${-(M.t + H - M.b) / 2}" y="16" text-anchor="middle">Yield change (%)</text>`;
+  let off = 0; const leg = [];
+  for (const g of groups) {
+    const e = panel[g], col = `var(${GVAR[g]})`;
     if (e.curve) {
-      const xs = e.curve.map(r => r[0]);
-      traces.push({x: [...xs, ...xs.slice().reverse()], y: [...e.curve.map(r => r[3]), ...e.curve.map(r => r[2]).reverse()],
-        fill: "toself", fillcolor: hexA(col, 0.18), line: {width: 0}, hoverinfo: "skip", showlegend: false, type: "scatter"});
-      traces.push({x: xs, y: e.curve.map(r => r[1]), mode: "lines", line: {color: col, width: 2}, name: g, type: "scatter",
-        customdata: e.curve.map(r => [r[2], r[3]]),
-        hovertemplate: `<b>${g}</b><br>ΔT %{x:.1f} °C<br>Fitted %{y:+.1f}%<br>95% band %{customdata[0]:+.0f} to %{customdata[1]:+.0f}%<extra></extra>`});
+      const band = e.curve.map(r => `${sx(r[0]).toFixed(1)},${sy(r[3]).toFixed(1)}`).concat(e.curve.slice().reverse().map(r => `${sx(r[0]).toFixed(1)},${sy(r[2]).toFixed(1)}`));
+      svg += `<polygon points="${band.join(" ")}" style="fill:${col};fill-opacity:0.16"/>`;
+      svg += `<polyline points="${e.curve.map(r => `${sx(r[0]).toFixed(1)},${sy(r[1]).toFixed(1)}`).join(" ")}" style="fill:none;stroke:${col};stroke-width:2.5;stroke-linejoin:round"/>`;
     }
-    if (state.pts) {
-      off += e.pts.filter(p => p[1] < -100 || p[1] > 100).length;
-      traces.push({x: e.pts.map(p => p[0]), y: e.pts.map(p => p[1]), mode: "markers", type: "scatter", name: g, showlegend: false,
-        marker: {color: hexA(col, 0.55), size: 6, line: {color: surf, width: 1}}, customdata: e.pts.map(p => p[3]),
-        hovertemplate: `<b>${g}</b> · %{customdata}<br>ΔT %{x:.2f} °C · yield %{y:+.1f}%<extra></extra>`});
-    }
-    leg.push(`<span><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${col};margin-right:5px"></i>${g}: ${e.n} runs, ${e.studies} ${e.studies > 1 ? "studies" : "study"}${e.curve ? "" : " (no fit)"}</span>`);
+    leg.push(`<span><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${col};margin-right:5px"></i>${g}: ${e.n} runs, ${e.studies} ${e.studies > 1 ? "studies" : "study"}${e.curve ? "" : " (too few for a curve)"}</span>`);
   }
-  $("#pNote" + i).textContent = off ? `${off} runs beyond ±100% not shown` : "";
-  $("#pLeg" + i).innerHTML = leg.join("") || '<span>No runs for this crop under the current CO₂ setting.</span>';
-  const ax = {gridcolor: line, zerolinecolor: line, linecolor: line, tickfont: {color: ink2, size: 11}, titlefont: {color: ink2, size: 12}};
-  Plotly.react("plot" + i, traces, {
-    margin: {l: 48, r: 10, t: 8, b: 40}, paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
-    font: {family: font, color: ink}, showlegend: false, hovermode: "closest",
-    hoverlabel: {bgcolor: ink, font: {color: css("--bg"), family: font}, bordercolor: ink},
-    xaxis: {...ax, title: {text: "ΔT at site (°C)"}, range: [0.3, 5.5], zeroline: false},
-    yaxis: {...ax, title: {text: "Yield change (%)"}, range: [-100, 100], zeroline: false, dtick: 50},
-    shapes: [{type: "line", xref: "paper", x0: 0, x1: 1, y0: 0, y1: 0, line: {color: ink2, width: 1, dash: "dot"}}],
-  }, {displayModeBar: false, responsive: true});
-}
-const drawPanels = () => state.panels.forEach((_, i) => drawPanel(i));
+  svg += `<line class="hair" id="hair" x1="0" x2="0" y1="${M.t}" y2="${H - M.b}" visibility="hidden"/>`;
+  svg += `<rect id="hov" x="${M.l}" y="${M.t}" width="${W - M.l - M.r}" height="${H - M.t - M.b}" style="fill:transparent"/>`;
+  if (state.pts) for (const g of groups) panel[g].pts.forEach((p, k) => {
+    if (p[1] < Y0 || p[1] > Y1) { off++; return; }
+    svg += `<circle class="pt" data-g="${g}" data-k="${k}" cx="${sx(p[0]).toFixed(1)}" cy="${sy(p[1]).toFixed(1)}" r="4" style="fill:var(${GVAR[g]})"/>`;
+  });
+  const box = $("#chart");
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Yield change against local warming for ${esc(state.crop)}">${svg}</svg>`;
+  $("#chartTitle").textContent = `${state.crop}: yield change vs local warming`;
+  $("#chartNote").textContent = off ? `${off} runs beyond ±100% not shown` : "";
+  $("#chartLeg").innerHTML = leg.join("") || "<span>No runs for this crop under the current CO₂ setting.</span>";
 
-// Summary
-function drawSummary() {
-  const L = ["1", "1.5", "2", "3", "4"];
-  const rows = FIT.map(c => ({c, e: (D.fits[c][state.co2] || {})["No adaptation"]})).filter(r => r.e)
-    .sort((a, b) => b.e.studies - a.e.studies);
-  $("#sumTbl").innerHTML = `<thead><tr><th>Crop</th>${L.map(l => `<th class="num">+${l} °C</th>`).join("")}<th class="num">Runs</th><th class="num">Studies</th><th>Robustness</th></tr></thead><tbody>` +
-    rows.map(({c, e}) => { const tag = e.studies >= 10 ? '<span class="tag robust">robust</span>' : e.studies >= 5 ? '<span class="tag ind">indicative</span>' : '<span class="tag thin">thin</span>';
-      return `<tr><td><b>${esc(c)}</b></td>${L.map(l => { const v = e.at && e.at[l];
-        return `<td class="num">${v ? `${sgn(v[0])}% <span class="note">(${sgn(v[1])} to ${sgn(v[2])})</span>` : "–"}</td>`; }).join("")}
-        <td class="num">${e.n}</td><td class="num">${e.studies}</td><td>${e.at ? tag : '<span class="tag thin">no fit</span>'}</td></tr>`; }).join("") + "</tbody>";
+  const svgEl = box.querySelector("svg"), hair = $("#hair", svgEl);
+  const toX = ev => { const r = svgEl.getBoundingClientRect(); return X0 + ((ev.clientX - r.left) * W / r.width - M.l) / (W - M.l - M.r) * (X1 - X0); };
+  $("#hov", svgEl).onmousemove = ev => {
+    const x = toX(ev), rows = [];
+    for (const g of groups) { const c = panel[g].curve; if (!c || x < c[0][0] || x > c[c.length - 1][0]) continue;
+      const j = c.findIndex(r => r[0] >= x), a = c[Math.max(0, j - 1)], b = c[j];
+      const f = b[0] === a[0] ? 0 : (x - a[0]) / (b[0] - a[0]), v = i => a[i] + f * (b[i] - a[i]);
+      rows.push(`<span style="color:var(${GVAR[g]})">●</span> ${g}: <b>${sgn(v(1))}%</b> (${sgn(v(2))} to ${sgn(v(3))})`); }
+    if (!rows.length) { hair.setAttribute("visibility", "hidden"); hideTip(); return; }
+    hair.setAttribute("x1", sx(x)); hair.setAttribute("x2", sx(x)); hair.setAttribute("visibility", "visible");
+    showTip(ev, `<b>ΔT ${x.toFixed(1)} °C</b><br>${rows.join("<br>")}`);
+  };
+  $("#hov", svgEl).onmouseleave = () => { hair.setAttribute("visibility", "hidden"); hideTip(); };
+  svgEl.querySelectorAll(".pt").forEach(c => {
+    c.onmousemove = ev => { const p = panel[c.dataset.g].pts[+c.dataset.k];
+      showTip(ev, `<b>${c.dataset.g}</b> · ${esc(p[3] || "Ref " + p[2])}<br>ΔT ${p[0].toFixed(2)} °C · yield ${sgn(p[1])}%`); };
+    c.onmouseleave = hideTip;
+  });
 }
 
 // References
@@ -357,10 +333,5 @@ $("#refTbl").innerHTML = `<thead><tr><th>Reference</th><th class="num">Year</th>
     <td>${esc(r.crops.join(", "))}</td><td class="num">${r.rows}</td><td>${esc(r.src)}</td>
     <td>${r.doi ? `<a href="https://doi.org/${esc(r.doi.replace(/^https?:\/\/(dx\.)?doi\.org\//, ""))}" target="_blank" rel="noopener">${esc(r.doi.replace(/^https?:\/\/(dx\.)?doi\.org\//, ""))}</a>` : "–"}</td></tr>`).join("") + "</tbody>";
 
-function boot() { if (!window.Plotly) { $("#panels").innerHTML = '<p class="note">The chart library did not load. Reload the page to see the response curves.</p>'; drawSummary(); return; }
-  drawPanels(); drawSummary(); }
-boot();
-const redraw = () => window.Plotly && drawPanels();
-matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redraw);
-new MutationObserver(redraw).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
+drawChart();
 </script>
