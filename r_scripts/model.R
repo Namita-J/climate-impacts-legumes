@@ -84,8 +84,11 @@ cat("ΔAIC:", AIC(null_mod$mer) - AIC(gamm4_mod_final$mer), "\n")
 r2(gamm4_mod_final$mer)
 
 # --- 10. Export Model Results ---
-gam_param  <- tidy(gamm4_mod_final$gam, parametric = TRUE)
-gam_smooth <- tidy(gamm4_mod_final$gam, parametric = FALSE)
+# All values below are taken from the fitted model (no hard-coded numbers)
+gam_param  <- summary(gamm4_mod_final$gam)$p.table
+gam_smooth <- summary(gamm4_mod_final$gam)$s.table
+r2_vals    <- r2(gamm4_mod_final$mer)
+fmt_p      <- function(p) ifelse(p < 0.001, "<0.001", as.character(round(p, 3)))
 
 model_metrics <- data.frame(
   Metric = c("AIC (null model)", "AIC (full model)", "ΔAIC",
@@ -94,7 +97,9 @@ model_metrics <- data.frame(
   Value = c(round(AIC(null_mod$mer), 2),
             round(AIC(gamm4_mod_final$mer), 2),
             round(AIC(null_mod$mer) - AIC(gamm4_mod_final$mer), 2),
-            0.116, 0.795, 0.168,
+            round(r2_vals$R2_marginal, 3),
+            round(r2_vals$R2_conditional, 3),
+            round(summary(gamm4_mod_final$gam)$r.sq, 3),
             round(summary(gamm4_mod_final$mer)$AICtab["REML"], 2),
             nrow(df_legumes),
             length(unique(df_legumes$ref_no)),
@@ -103,19 +108,23 @@ model_metrics <- data.frame(
 
 fixed_effects <- data.frame(
   Term = c("Intercept", "ΔT (°C)", "Adaptation", "CO₂ fertilization", "s(ΔP) smooth"),
-  Estimate = c(-21.228, 0.770, 20.704, 9.148, NA),
-  SE = c(14.588, 2.367, 5.046, 9.545, NA),
-  t_value = c(-1.455, 0.325, 4.103, 0.958, NA),
-  edf = c(NA, NA, NA, NA, 4.006),
-  F_value = c(NA, NA, NA, NA, 4.361),
-  p_value = c(0.147, 0.745, "<0.001", 0.339, 0.002)
+  Estimate = c(round(gam_param[, "Estimate"], 3), NA),
+  SE = c(round(gam_param[, "Std. Error"], 3), NA),
+  t_value = c(round(gam_param[, "t value"], 3), NA),
+  edf = c(rep(NA, nrow(gam_param)), round(gam_smooth[1, "edf"], 3)),
+  F_value = c(rep(NA, nrow(gam_param)), round(gam_smooth[1, "F"], 3)),
+  p_value = fmt_p(c(gam_param[, "Pr(>|t|)"], gam_smooth[1, "p-value"]))
 )
 
+# Variance components (the s(precip) smooth's penalty term "Xr" is not a random effect)
+vc <- as.data.frame(VarCorr(gamm4_mod_final$mer)) %>%
+  filter(grp != "Xr") %>%
+  arrange(desc(vcov))
 random_effects <- data.frame(
-  Group = c("country", "study_id", "Residual", "Total"),
-  Variance = c(1115.7, 571.0, 509.2, 2195.9),
-  Std_Dev = c(33.40, 23.90, 22.57, NA),
-  Pct_Variance = c("51%", "26%", "23%", "100%")
+  Group = c(vc$grp, "Total"),
+  Variance = round(c(vc$vcov, sum(vc$vcov)), 1),
+  Std_Dev = c(round(vc$sdcor, 2), NA),
+  Pct_Variance = paste0(round(100 * c(vc$vcov, sum(vc$vcov)) / sum(vc$vcov)), "%")
 )
 
 writexl::write_xlsx(

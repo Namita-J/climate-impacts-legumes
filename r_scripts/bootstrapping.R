@@ -335,7 +335,7 @@ get_grid <- function(subdat, group_name) {
     mutate(
       fit = rowMeans(pred_mat, na.rm = TRUE),
       lo95 = apply(pred_mat, 1, quantile, probs = 0.025, na.rm = TRUE),
-      hi95 = apply(pred_mat, 1, quantile, probs = 0.900, na.rm = TRUE)
+      hi95 = apply(pred_mat, 1, quantile, probs = 0.975, na.rm = TRUE)
     )
 }
 

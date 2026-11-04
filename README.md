@@ -1,7 +1,6 @@
 # climate-impacts-legumes
 
-Reproducible analysis for Chapter 1 of my PhD thesis: a systematic meta-analysis of crop model projections for legumes in Africa. Manuscript in revision for *Global Environmental Change* (submission August 2026).
-
+Reproducible analysis for Chapter 1 of my PhD thesis: a systematic meta-analysis of crop model projections for legumes in Africa.
 ---
 
 ## Systematic Literature Review
